@@ -55,3 +55,5 @@ export interface SelectedChord {
     intervals: number[];
     numeral: string;
 }
+
+export type ViewMode = "circular" | "linear";
