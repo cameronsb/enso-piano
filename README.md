@@ -41,66 +41,87 @@ This creates an optimized production build in the `dist/` directory.
 npm run preview
 ```
 
-## Project Structure
+## Project Structure (🎯 Clean Architecture)
 
 ```
 src/
-├── components/          # React components
+├── contexts/            # State Management (New!)
+│   ├── MusicContext.tsx      # Music domain state
+│   ├── UIContext.tsx         # UI state
+│   └── InteractionContext.tsx # Interaction state
+├── hooks/              # Business Logic
+│   ├── useAudioEngine.ts     # Audio management
+│   ├── useKeyPress.ts        # Key interaction
+│   └── useChordPlayer.ts     # Chord playback
+├── components/         # UI Components
 │   ├── CircularPiano.tsx
-│   ├── PianoKey.tsx
+│   ├── LinearPiano.tsx
 │   ├── ChordDisplay.tsx
-│   ├── ChordGrid.tsx
-│   ├── ChordItem.tsx
-│   └── ModeToggle.tsx
-├── hooks/              # Custom React hooks
-│   └── useAudioEngine.ts
-├── types/              # TypeScript type definitions
+│   └── [Other UI Components]
+├── types/              # TypeScript definitions
 │   └── music.ts
-├── utils/              # Utility functions
+├── utils/              # Pure utility functions
 │   └── musicTheory.ts
-├── App.tsx             # Main application component
-├── main.tsx            # Application entry point
-└── index.css           # Global styles
+├── App.tsx             # Main app (now only 55 lines!)
+├── main.tsx            # Entry point
+└── index.css           # Styles
 ```
 
-## Component Architecture
+## 🏗️ Architecture Highlights
+
+### Clean State Management
+-   **Zero Prop Drilling**: Components access state directly via context hooks
+-   **Separation of Concerns**: Music logic, UI state, and interactions are separate
+-   **Reducer Pattern**: Predictable state updates in MusicContext
+-   **Type-Safe**: Full TypeScript coverage with strict typing
 
 ### Core Components
 
--   **App**: Main application container, manages state and audio playback
--   **CircularPiano**: Renders the circular piano keyboard
--   **PianoKey**: Individual piano key component with interaction handling
--   **ChordDisplay**: Displays chord progressions for selected key
--   **ChordGrid**: Grid layout for displaying triads or seventh chords
--   **ChordItem**: Individual chord button with click-to-play functionality
--   **ModeToggle**: Switch between major and minor modes
+-   **App**: Clean component wrapper (reduced from 166 to 55 lines!)
+-   **CircularPiano/LinearPiano**: Keyboard views using context hooks
+-   **ChordDisplay**: Chord selection and progression builder
+-   **Context Providers**: Wrap the app with state management
 
-### Hooks
+### Custom Hooks
 
--   **useAudioEngine**: Custom hook for Web Audio API integration
+-   **useMusic()**: Access music state and actions
+-   **useUI()**: Access UI state and actions
+-   **useAudioEngine()**: Web Audio API integration
+-   **useKeyPress()**: Centralized key press logic
+-   **useChordPlayer()**: Chord selection and playback
 
-### Utilities
+## Extending the Application (Now Super Easy! 🚀)
 
--   **musicTheory**: Music theory calculations (scales, chords, frequencies)
+### Adding New Features
 
-## Extending the Application
+With our clean architecture, adding features is straightforward:
+
+```typescript
+// Example: Add tempo control
+// 1. Add to MusicContext state
+interface MusicState {
+    tempo: number;  // New!
+}
+
+// 2. Add action
+{ type: "SET_TEMPO"; payload: number }
+
+// 3. Use anywhere - no prop drilling!
+const { state, actions } = useMusic();
+<TempoSlider value={state.tempo} onChange={actions.setTempo} />
+```
 
 ### Adding New Modes
 
-To add additional modes (e.g., harmonic minor, melodic minor):
-
-1. Add the mode to the `Mode` type in `src/types/music.ts`
-2. Define the scale pattern in `SCALES` in `src/utils/musicTheory.ts`
-3. Define the chord types in `CHORD_TYPES`
-4. Update the `ModeToggle` component to include the new mode
+```typescript
+// Simply update musicTheory.ts
+SCALES.dorian = [0, 2, 3, 5, 7, 9, 10];
+// Components automatically get the new mode!
+```
 
 ### Customizing Sound
 
-Edit the `useAudioEngine` hook in `src/hooks/useAudioEngine.ts`:
-
--   Change `oscillator.type` to adjust the waveform ('sine', 'square', 'sawtooth', 'triangle')
--   Adjust `masterGain.gain.value` to change the volume
--   Modify the ADSR envelope parameters for different attack/decay characteristics
+Edit `useAudioEngine.ts` to change instruments or sound parameters
 
 ### Styling
 

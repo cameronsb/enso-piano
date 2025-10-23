@@ -1,28 +1,26 @@
-import { useMemo } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import type {
     Note,
     PianoKeyData,
     NoteWithOctave,
-    SelectedChord,
 } from "../types/music";
 import { PianoKey } from "./PianoKey";
 import { FREQUENCIES, NOTES } from "../utils/musicTheory";
+import { useMusic } from "../contexts/MusicContext";
+import { useUI } from "../contexts/UIContext";
+import { useKeyPress } from "../hooks/useKeyPress";
 
-interface CircularPianoProps {
-    selectedKey: Note;
-    mode: string;
-    onKeyPress: (baseNote: Note, frequency: number) => void;
-    selectedChords: SelectedChord[];
-    onDeselect: () => void;
-}
+export function CircularPiano() {
+    const { state: musicState, actions: musicActions } = useMusic();
+    const { state: uiState, actions: uiActions } = useUI();
+    const handleKeyPress = useKeyPress();
 
-export function CircularPiano({
-    selectedKey,
-    mode,
-    onKeyPress,
-    selectedChords,
-    onDeselect,
-}: CircularPianoProps) {
+    const { selectedKey, mode, selectedChords } = musicState;
+    const { circularPianoRotation: rotation } = uiState;
+    const containerRef = useRef<HTMLDivElement>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const [startAngle, setStartAngle] = useState(0);
+    const [currentRotation, setCurrentRotation] = useState(rotation);
     const pianoKeys = useMemo(() => {
         const keys: PianoKeyData[] = [];
         const radius = 190;
@@ -104,21 +102,74 @@ export function CircularPiano({
         return notes;
     }, [selectedChords]);
 
-    const handleKeyPress = (keyData: PianoKeyData) => {
+    const handleKeyPressCallback = (keyData: PianoKeyData) => {
         const frequency = FREQUENCIES[keyData.note];
         if (frequency) {
-            onKeyPress(keyData.baseNote, frequency);
+            handleKeyPress(keyData.baseNote, frequency);
         }
     };
 
     const handleCenterClick = () => {
         if (selectedChords.length > 0) {
-            onDeselect();
+            musicActions.deselectChords();
         }
     };
 
+    // Calculate angle from center to mouse position
+    const getAngleFromCenter = (clientX: number, clientY: number): number => {
+        if (!containerRef.current) return 0;
+        const rect = containerRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        const angle = Math.atan2(clientY - centerY, clientX - centerX);
+        return (angle * 180) / Math.PI;
+    };
+
+    const handleContextMenu = (e: React.MouseEvent) => {
+        e.preventDefault();
+        const angle = getAngleFromCenter(e.clientX, e.clientY);
+        setStartAngle(angle - currentRotation);
+        setIsDragging(true);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+        if (!isDragging) return;
+        const angle = getAngleFromCenter(e.clientX, e.clientY);
+        const newRotation = angle - startAngle;
+        setCurrentRotation(newRotation);
+    };
+
+    const handleMouseUp = () => {
+        if (isDragging) {
+            setIsDragging(false);
+            uiActions.setCircularRotation(currentRotation);
+        }
+    };
+
+    // Add global mouse event listeners
+    useEffect(() => {
+        if (isDragging) {
+            window.addEventListener("mousemove", handleMouseMove);
+            window.addEventListener("mouseup", handleMouseUp);
+            return () => {
+                window.removeEventListener("mousemove", handleMouseMove);
+                window.removeEventListener("mouseup", handleMouseUp);
+            };
+        }
+    }, [isDragging, currentRotation, startAngle]);
+
+    // Sync rotation prop with local state
+    useEffect(() => {
+        setCurrentRotation(rotation);
+    }, [rotation]);
+
     return (
-        <div className="piano-container">
+        <div
+            className="piano-container"
+            ref={containerRef}
+            onContextMenu={handleContextMenu}
+            style={{ cursor: isDragging ? "grabbing" : "default" }}
+        >
             <div
                 className={`center-circle ${
                     selectedChords.length > 0 ? "clickable" : ""
@@ -126,19 +177,27 @@ export function CircularPiano({
                 onClick={handleCenterClick}
             >
                 <div className="selected-key">{selectedKey}</div>
-                <div className="key-mode">{mode}</div>
+                <div className="key-mode">
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </div>
                 {selectedChords.length > 0 && (
                     <div className="selected-chord-info">
                         {selectedChords[0].numeral}
                     </div>
                 )}
             </div>
-            <div id="pianoKeys">
+            <div
+                id="pianoKeys"
+                style={{
+                    transform: `rotate(${currentRotation}deg)`,
+                    transition: isDragging ? "none" : "transform 0.3s ease"
+                }}
+            >
                 {pianoKeys.map((keyData) => (
                     <PianoKey
                         key={keyData.note}
                         keyData={keyData}
-                        onPress={handleKeyPress}
+                        onPress={handleKeyPressCallback}
                         isHighlighted={highlightedNotes.has(keyData.baseNote)}
                     />
                 ))}

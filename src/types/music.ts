@@ -57,3 +57,12 @@ export interface SelectedChord {
 }
 
 export type ViewMode = "circular" | "linear";
+
+export type InteractionMode = "keySelection" | "play";
+
+export type ChordDisplayMode = "select" | "build";
+
+export interface ChordInProgression extends SelectedChord {
+    id: string;
+    duration: number; // in beats
+}

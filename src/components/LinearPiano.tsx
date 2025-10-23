@@ -1,15 +1,9 @@
 import { useMemo } from "react";
-import type { Note, SelectedChord, NoteWithOctave } from "../types/music";
+import type { Note, NoteWithOctave } from "../types/music";
 import { LinearPianoKey } from "./LinearPianoKey";
 import { FREQUENCIES, NOTES } from "../utils/musicTheory";
-
-interface LinearPianoProps {
-    selectedKey: Note;
-    mode: string;
-    onKeyPress: (baseNote: Note, frequency: number) => void;
-    selectedChords: SelectedChord[];
-    onDeselect: () => void;
-}
+import { useMusic } from "../contexts/MusicContext";
+import { useKeyPress } from "../hooks/useKeyPress";
 
 interface KeyData {
     note: NoteWithOctave;
@@ -18,13 +12,11 @@ interface KeyData {
     octave: number;
 }
 
-export function LinearPiano({
-    selectedKey,
-    mode,
-    onKeyPress,
-    selectedChords,
-    onDeselect,
-}: LinearPianoProps) {
+export function LinearPiano() {
+    const { state: musicState, actions: musicActions } = useMusic();
+    const handleKeyPress = useKeyPress();
+
+    const { selectedKey, mode, selectedChords } = musicState;
     const pianoKeys = useMemo(() => {
         const keys: KeyData[] = [];
         const whiteNotes: Note[] = ["C", "D", "E", "F", "G", "A", "B"];
@@ -79,10 +71,10 @@ export function LinearPiano({
         return notes;
     }, [selectedChords]);
 
-    const handleKeyPress = (keyData: KeyData) => {
+    const handleKeyPressCallback = (keyData: KeyData) => {
         const frequency = FREQUENCIES[keyData.note];
         if (frequency) {
-            onKeyPress(keyData.baseNote, frequency);
+            handleKeyPress(keyData.baseNote, frequency);
         }
     };
 
@@ -95,10 +87,12 @@ export function LinearPiano({
                 className={`piano-info-display ${
                     selectedChords.length > 0 ? "clickable" : ""
                 }`}
-                onClick={() => selectedChords.length > 0 && onDeselect()}
+                onClick={() => selectedChords.length > 0 && musicActions.deselectChords()}
             >
                 <div className="selected-key-linear">{selectedKey}</div>
-                <div className="key-mode-linear">{mode}</div>
+                <div className="key-mode-linear">
+                    {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                </div>
                 {selectedChords.length > 0 && (
                     <div className="selected-chord-info-linear">
                         {selectedChords[0].numeral}
@@ -112,7 +106,7 @@ export function LinearPiano({
                         <LinearPianoKey
                             key={keyData.note}
                             keyData={keyData}
-                            onPress={handleKeyPress}
+                            onPress={handleKeyPressCallback}
                             isHighlighted={highlightedNotes.has(
                                 keyData.baseNote
                             )}
@@ -125,7 +119,7 @@ export function LinearPiano({
                         <LinearPianoKey
                             key={keyData.note}
                             keyData={keyData}
-                            onPress={handleKeyPress}
+                            onPress={handleKeyPressCallback}
                             isHighlighted={highlightedNotes.has(
                                 keyData.baseNote
                             )}
@@ -137,4 +131,3 @@ export function LinearPiano({
         </div>
     );
 }
-

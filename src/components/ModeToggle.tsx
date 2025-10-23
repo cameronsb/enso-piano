@@ -1,18 +1,16 @@
-import type { Mode } from "../types/music";
+import { useMusic } from "../contexts/MusicContext";
 
-interface ModeToggleProps {
-    currentMode: Mode;
-    onModeChange: (mode: Mode) => void;
-}
+export function ModeToggle() {
+    const { state: musicState, actions: musicActions } = useMusic();
+    const { mode: currentMode } = musicState;
 
-export function ModeToggle({ currentMode, onModeChange }: ModeToggleProps) {
     return (
         <div className="mode-toggle">
             <button
                 className={`mode-btn ${
                     currentMode === "major" ? "active" : ""
                 }`}
-                onClick={() => onModeChange("major")}
+                onClick={() => musicActions.setMode("major")}
             >
                 Major
             </button>
@@ -20,7 +18,7 @@ export function ModeToggle({ currentMode, onModeChange }: ModeToggleProps) {
                 className={`mode-btn ${
                     currentMode === "minor" ? "active" : ""
                 }`}
-                onClick={() => onModeChange("minor")}
+                onClick={() => musicActions.setMode("minor")}
             >
                 Minor
             </button>

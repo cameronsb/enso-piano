@@ -116,6 +116,23 @@ export function getChordName(
     return NOTES[chordRootIndex];
 }
 
+export function getChordTypeFromIntervals(intervals: number[]): string {
+    const intervalStr = intervals.join(",");
+
+    // Triads
+    if (intervalStr === "0,4,7") return "maj";
+    if (intervalStr === "0,3,7") return "min";
+    if (intervalStr === "0,3,6") return "dim";
+
+    // Seventh chords
+    if (intervalStr === "0,4,7,11") return "maj7";
+    if (intervalStr === "0,3,7,10") return "min7";
+    if (intervalStr === "0,4,7,10") return "dom7";
+    if (intervalStr === "0,3,6,10") return "half-dim7";
+
+    return "maj"; // default
+}
+
 export function getChordSymbol(rootNote: Note, chordType: string): string {
     let symbol = rootNote;
 
@@ -141,6 +158,63 @@ export function getChordSymbol(rootNote: Note, chordType: string): string {
     }
 
     return symbol;
+}
+
+export function getFullChordName(rootNote: Note, intervals: number[]): string {
+    const chordType = getChordTypeFromIntervals(intervals);
+    return getChordSymbol(rootNote, chordType);
+}
+
+export function getRomanNumeralForChord(
+    chordRoot: Note,
+    chordIntervals: number[],
+    keyRoot: Note,
+    mode: Mode
+): string {
+    const keyRootIndex = NOTES.indexOf(keyRoot);
+    const chordRootIndex = NOTES.indexOf(chordRoot);
+    const scale = SCALES[mode];
+
+    // Find which scale degree this chord root is
+    let scaleDegree = -1;
+    for (let i = 0; i < scale.length; i++) {
+        const scaleNoteIndex = (keyRootIndex + scale[i]) % 12;
+        if (scaleNoteIndex === chordRootIndex) {
+            scaleDegree = i;
+            break;
+        }
+    }
+
+    // If not in scale, return "?"
+    if (scaleDegree === -1) return "?";
+
+    // Get the chord type from intervals
+    const chordType = getChordTypeFromIntervals(chordIntervals);
+    const chords = CHORD_TYPES[mode];
+
+    // Check triads - use index-based loop
+    for (let i = 0; i < chords.triads.length; i++) {
+        const chord = chords.triads[i];
+        const expectedRoot = getChordName(keyRoot, mode, i);
+
+        if (expectedRoot === chordRoot && chord.type === chordType) {
+            return chord.numeral;
+        }
+    }
+
+    // Check sevenths - use index-based loop
+    for (let i = 0; i < chords.sevenths.length; i++) {
+        const chord = chords.sevenths[i];
+        const expectedRoot = getChordName(keyRoot, mode, i);
+
+        if (expectedRoot === chordRoot && chord.type === chordType) {
+            return chord.numeral;
+        }
+    }
+
+    // Fallback: return basic Roman numeral based on scale degree
+    const romanNumerals = ["I", "II", "III", "IV", "V", "VI", "VII"];
+    return romanNumerals[scaleDegree] || "?";
 }
 
 export function getChordFrequencies(

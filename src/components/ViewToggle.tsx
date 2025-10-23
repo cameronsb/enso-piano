@@ -1,18 +1,15 @@
-import type { ViewMode } from "../types/music";
+import { useUI } from "../contexts/UIContext";
 
-interface ViewToggleProps {
-    currentView: ViewMode;
-    onViewChange: (view: ViewMode) => void;
-}
-
-export function ViewToggle({ currentView, onViewChange }: ViewToggleProps) {
+export function ViewToggle() {
+    const { state: uiState, actions: uiActions } = useUI();
+    const { viewMode: currentView } = uiState;
     return (
         <div className="view-toggle">
             <button
                 className={`view-btn ${
                     currentView === "circular" ? "active" : ""
                 }`}
-                onClick={() => onViewChange("circular")}
+                onClick={() => uiActions.setViewMode("circular")}
                 title="Circular piano layout"
             >
                 <svg
@@ -32,7 +29,7 @@ export function ViewToggle({ currentView, onViewChange }: ViewToggleProps) {
                 className={`view-btn ${
                     currentView === "linear" ? "active" : ""
                 }`}
-                onClick={() => onViewChange("linear")}
+                onClick={() => uiActions.setViewMode("linear")}
                 title="Traditional piano layout"
             >
                 <svg
@@ -53,4 +50,3 @@ export function ViewToggle({ currentView, onViewChange }: ViewToggleProps) {
         </div>
     );
 }
-

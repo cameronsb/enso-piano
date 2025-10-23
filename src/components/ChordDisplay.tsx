@@ -1,38 +1,48 @@
-import type { Note, Mode, SelectedChord } from "../types/music";
 import { ModeToggle } from "./ModeToggle";
 import { ChordGrid } from "./ChordGrid";
+import { ChordDisplayModeToggle } from "./ChordDisplayModeToggle";
+import { ChordProgressionTrack } from "./ChordProgressionTrack";
 import { CHORD_TYPES } from "../utils/musicTheory";
+import { useMusic } from "../contexts/MusicContext";
+import { useChordPlayer } from "../hooks/useChordPlayer";
 
-interface ChordDisplayProps {
-    selectedKey: Note;
-    mode: Mode;
-    onModeChange: (mode: Mode) => void;
-    onChordSelect: (
-        rootNote: Note,
-        intervals: number[],
-        numeral: string
-    ) => void;
-    selectedChords: SelectedChord[];
-}
+export function ChordDisplay() {
+    const { state: musicState, actions: musicActions } = useMusic();
+    const handleChordSelect = useChordPlayer();
 
-export function ChordDisplay({
-    selectedKey,
-    mode,
-    onModeChange,
-    onChordSelect,
-    selectedChords,
-}: ChordDisplayProps) {
+    const {
+        selectedKey,
+        mode,
+        selectedChords,
+        chordDisplayMode,
+        chordProgression,
+    } = musicState;
     const chords = CHORD_TYPES[mode];
 
     return (
         <div className="chords-display">
-            <ModeToggle currentMode={mode} onModeChange={onModeChange} />
+            <div className="chord-display-header">
+                <ModeToggle />
+                <ChordDisplayModeToggle />
+            </div>
+
+            {chordDisplayMode === "build" && (
+                <ChordProgressionTrack
+                    chords={chordProgression}
+                    timeSignature={{ beats: 4, noteValue: 4 }}
+                    onRemoveChord={musicActions.removeFromProgression}
+                    onClearAll={musicActions.clearProgression}
+                    selectedKey={selectedKey}
+                    mode={mode}
+                />
+            )}
+
             <ChordGrid
                 title="Triads"
                 chords={chords.triads}
                 selectedKey={selectedKey}
                 mode={mode}
-                onChordSelect={onChordSelect}
+                onChordSelect={handleChordSelect}
                 selectedChords={selectedChords}
             />
             <ChordGrid
@@ -40,7 +50,7 @@ export function ChordDisplay({
                 chords={chords.sevenths}
                 selectedKey={selectedKey}
                 mode={mode}
-                onChordSelect={onChordSelect}
+                onChordSelect={handleChordSelect}
                 selectedChords={selectedChords}
             />
         </div>

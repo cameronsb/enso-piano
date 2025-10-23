@@ -1,9 +1,10 @@
 import { useState, useEffect } from "react";
 import { useInteraction } from "../contexts/InteractionContext";
+import type { Note, NoteWithOctave } from "../types/music";
 
 interface KeyData {
-    note: string;
-    baseNote: string;
+    note: NoteWithOctave;
+    baseNote: Note;
     isBlack: boolean;
     octave: number;
 }
@@ -20,7 +21,6 @@ export function LinearPianoKey({
     keyData,
     onPress,
     isHighlighted = false,
-    position = 0,
     isBlackKey = false,
 }: LinearPianoKeyProps) {
     const [isActive, setIsActive] = useState(false);
@@ -28,9 +28,9 @@ export function LinearPianoKey({
         useInteraction();
 
     const playKey = () => {
-        if (shouldPlayNote(keyData.note as any)) {
+        if (shouldPlayNote(keyData.note)) {
             setIsActive(true);
-            setLastPlayedNote(keyData.note as any);
+            setLastPlayedNote(keyData.note);
             onPress(keyData);
 
             setTimeout(() => setIsActive(false), 200);
@@ -80,14 +80,36 @@ export function LinearPianoKey({
     }${isActive ? " active" : ""}${isHighlighted ? " highlighted" : ""}`;
 
     // Calculate position for black keys
-    const blackKeyPositions: { [key: string]: number } = {
-        "C#4": 0, "D#4": 1, "F#4": 3, "G#4": 4, "A#4": 5,
-        "C#5": 7, "D#5": 8, "F#5": 10, "G#5": 11, "A#5": 12,
+    // Black keys sit between white keys. We need to map each black note to its position
+    // relative to white keys. White keys are 60px + 2px gap = 62px each
+    const getBlackKeyPosition = (note: string): number => {
+        const whiteKeyWidth = 60;
+        const gapWidth = 2;
+        const keyUnit = whiteKeyWidth + gapWidth;
+        const blackKeyWidth = 40;
+        const offset = (whiteKeyWidth - blackKeyWidth / 2);
+
+        // Map each black note to which white key it follows
+        const blackKeyMap: { [key: string]: number } = {
+            "C#4": 0,  // After C4 (position 0)
+            "D#4": 1,  // After D4 (position 1)
+            "F#4": 3,  // After F4 (position 3)
+            "G#4": 4,  // After G4 (position 4)
+            "A#4": 5,  // After A4 (position 5)
+            "C#5": 7,  // After C5 (position 7)
+            "D#5": 8,  // After D5 (position 8)
+            "F#5": 10, // After F5 (position 10)
+            "G#5": 11, // After G5 (position 11)
+            "A#5": 12, // After A5 (position 12)
+        };
+
+        const whiteKeyIndex = blackKeyMap[note];
+        return whiteKeyIndex * keyUnit + offset;
     };
 
     const style: React.CSSProperties = isBlackKey
         ? {
-              left: `${blackKeyPositions[keyData.note] * 60 + 42}px`,
+              left: `${getBlackKeyPosition(keyData.note)}px`,
           }
         : {};
 
@@ -104,4 +126,3 @@ export function LinearPianoKey({
         </div>
     );
 }
-

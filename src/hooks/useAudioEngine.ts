@@ -1,5 +1,6 @@
-import { useRef, useCallback, useEffect, useState } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import Soundfont, { Player } from "soundfont-player";
+import { useUI } from "../contexts/UIContext";
 
 interface AudioEngine {
     context: AudioContext | null;
@@ -9,6 +10,7 @@ interface AudioEngine {
 }
 
 export function useAudioEngine() {
+    const { actions: uiActions } = useUI();
     const audioRef = useRef<AudioEngine>({
         context: null,
         instrument: null,
@@ -16,14 +18,13 @@ export function useAudioEngine() {
         loading: false,
     });
 
-    const [isLoading, setIsLoading] = useState(true);
-
     useEffect(() => {
         const initAudio = async () => {
             if (audioRef.current.initialized || audioRef.current.loading)
                 return;
 
             audioRef.current.loading = true;
+            uiActions.setAudioLoading(true);
 
             try {
                 const AudioContextClass =
@@ -47,16 +48,16 @@ export function useAudioEngine() {
                     loading: false,
                 };
 
-                setIsLoading(false);
+                uiActions.setAudioLoading(false);
             } catch (error) {
                 console.error("Failed to load piano soundfont:", error);
                 audioRef.current.loading = false;
-                setIsLoading(false);
+                uiActions.setAudioLoading(false);
             }
         };
 
         initAudio();
-    }, []);
+    }, [uiActions]);
 
     const playNote = useCallback((frequency: number, duration = 0.3) => {
         const { instrument } = audioRef.current;
@@ -80,7 +81,7 @@ export function useAudioEngine() {
         });
     }, []);
 
-    return { playNote, playChord, isLoading };
+    return { playNote, playChord };
 }
 
 // Helper function to convert frequency to MIDI note number

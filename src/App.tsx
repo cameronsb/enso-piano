@@ -1,100 +1,54 @@
-import { useState, useCallback } from "react";
-import type { Note, Mode, SelectedChord, ViewMode } from "./types/music";
 import { CircularPiano } from "./components/CircularPiano";
 import { LinearPiano } from "./components/LinearPiano";
 import { ChordDisplay } from "./components/ChordDisplay";
 import { ViewToggle } from "./components/ViewToggle";
-import { useAudioEngine } from "./hooks/useAudioEngine";
-import { getChordFrequencies } from "./utils/musicTheory";
+import { InteractionModeToggle } from "./components/InteractionModeToggle";
+import { ThemeToggle } from "./components/ThemeToggle";
 import { InteractionProvider } from "./contexts/InteractionContext";
+import { MusicProvider } from "./contexts/MusicContext";
+import { UIProvider, useUI } from "./contexts/UIContext";
 
-function App() {
-    const [selectedKey, setSelectedKey] = useState<Note>("C");
-    const [currentMode, setCurrentMode] = useState<Mode>("major");
-    const [selectedChords, setSelectedChords] = useState<SelectedChord[]>([]);
-    const [viewMode, setViewMode] = useState<ViewMode>("circular");
-    const { playNote, playChord, isLoading } = useAudioEngine();
-
-    const handleKeyPress = useCallback(
-        (baseNote: Note, frequency: number) => {
-            setSelectedKey(baseNote);
-            playNote(frequency);
-        },
-        [playNote]
-    );
-
-    const handleModeChange = useCallback((mode: Mode) => {
-        setCurrentMode(mode);
-    }, []);
-
-    const handleChordSelect = useCallback(
-        (rootNote: Note, intervals: number[], numeral: string) => {
-            // Radio button behavior - replace current selection
-            setSelectedChords([{ rootNote, intervals, numeral }]);
-
-            // Play the chord
-            const frequencies = getChordFrequencies(rootNote, intervals);
-            playChord(frequencies);
-        },
-        [playChord]
-    );
-
-    const handleChordDeselect = useCallback(() => {
-        setSelectedChords([]);
-    }, []);
-
-    const handleViewChange = useCallback((view: ViewMode) => {
-        setViewMode(view);
-    }, []);
-
-    const displayMode =
-        currentMode.charAt(0).toUpperCase() + currentMode.slice(1);
+function AppContent() {
+    const { state: uiState } = useUI();
 
     return (
         <InteractionProvider>
             <div className="container">
                 <div className="title">
+                    <ThemeToggle />
                     <h1>円相 Enso Piano</h1>
                     <p className="subtitle">Circular Harmony Explorer</p>
-                    {isLoading && (
+                    {uiState.isAudioLoading && (
                         <p className="loading-message">
                             Loading piano sounds...
                         </p>
                     )}
                 </div>
 
-                <ViewToggle
-                    currentView={viewMode}
-                    onViewChange={handleViewChange}
-                />
+                <div className="control-toggles">
+                    <ViewToggle />
+                    <InteractionModeToggle />
+                </div>
 
-                {viewMode === "circular" ? (
-                    <CircularPiano
-                        selectedKey={selectedKey}
-                        mode={displayMode}
-                        onKeyPress={handleKeyPress}
-                        selectedChords={selectedChords}
-                        onDeselect={handleChordDeselect}
-                    />
+                {uiState.viewMode === "circular" ? (
+                    <CircularPiano />
                 ) : (
-                    <LinearPiano
-                        selectedKey={selectedKey}
-                        mode={displayMode}
-                        onKeyPress={handleKeyPress}
-                        selectedChords={selectedChords}
-                        onDeselect={handleChordDeselect}
-                    />
+                    <LinearPiano />
                 )}
 
-                <ChordDisplay
-                    selectedKey={selectedKey}
-                    mode={currentMode}
-                    onModeChange={handleModeChange}
-                    onChordSelect={handleChordSelect}
-                    selectedChords={selectedChords}
-                />
+                <ChordDisplay />
             </div>
         </InteractionProvider>
+    );
+}
+
+function App() {
+    return (
+        <UIProvider>
+            <MusicProvider>
+                <AppContent />
+            </MusicProvider>
+        </UIProvider>
     );
 }
 
