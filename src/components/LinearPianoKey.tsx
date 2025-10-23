@@ -13,15 +13,21 @@ interface LinearPianoKeyProps {
     keyData: KeyData;
     onPress: (keyData: KeyData) => void;
     isHighlighted?: boolean;
+    isScaleNote?: boolean;
     position?: number;
     isBlackKey?: boolean;
+    scaleNumeral?: string | null;
+    showScaleNumeral?: boolean;
 }
 
 export function LinearPianoKey({
     keyData,
     onPress,
     isHighlighted = false,
+    isScaleNote = false,
     isBlackKey = false,
+    scaleNumeral = null,
+    showScaleNumeral = false,
 }: LinearPianoKeyProps) {
     const [isActive, setIsActive] = useState(false);
     const { isPointerDown, setPointerDown, setLastPlayedNote, shouldPlayNote } =
@@ -77,7 +83,9 @@ export function LinearPianoKey({
 
     const className = `linear-piano-key ${
         isBlackKey ? "linear-black-key" : "linear-white-key"
-    }${isActive ? " active" : ""}${isHighlighted ? " highlighted" : ""}`;
+    }${isActive ? " active" : ""}${isHighlighted ? " highlighted" : ""}${
+        isScaleNote && !isHighlighted ? " scale-note" : ""
+    }`;
 
     // Calculate position for black keys
     // Black keys sit between white keys. We need to map each black note to its position
@@ -87,17 +95,17 @@ export function LinearPianoKey({
         const gapWidth = 2;
         const keyUnit = whiteKeyWidth + gapWidth;
         const blackKeyWidth = 40;
-        const offset = (whiteKeyWidth - blackKeyWidth / 2);
+        const offset = whiteKeyWidth - blackKeyWidth / 2;
 
         // Map each black note to which white key it follows
         const blackKeyMap: { [key: string]: number } = {
-            "C#4": 0,  // After C4 (position 0)
-            "D#4": 1,  // After D4 (position 1)
-            "F#4": 3,  // After F4 (position 3)
-            "G#4": 4,  // After G4 (position 4)
-            "A#4": 5,  // After A4 (position 5)
-            "C#5": 7,  // After C5 (position 7)
-            "D#5": 8,  // After D5 (position 8)
+            "C#4": 0, // After C4 (position 0)
+            "D#4": 1, // After D4 (position 1)
+            "F#4": 3, // After F4 (position 3)
+            "G#4": 4, // After G4 (position 4)
+            "A#4": 5, // After A4 (position 5)
+            "C#5": 7, // After C5 (position 7)
+            "D#5": 8, // After D5 (position 8)
             "F#5": 10, // After F5 (position 10)
             "G#5": 11, // After G5 (position 11)
             "A#5": 12, // After A5 (position 12)
@@ -123,6 +131,11 @@ export function LinearPianoKey({
             onTouchStart={handleTouchStart}
         >
             <span className="linear-key-label">{keyData.baseNote}</span>
+            {showScaleNumeral && scaleNumeral && (
+                <span className="linear-scale-numeral">
+                    {scaleNumeral}
+                </span>
+            )}
         </div>
     );
 }

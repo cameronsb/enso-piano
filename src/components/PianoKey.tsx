@@ -6,12 +6,18 @@ interface PianoKeyProps {
     keyData: PianoKeyData;
     onPress: (keyData: PianoKeyData) => void;
     isHighlighted?: boolean;
+    isScaleNote?: boolean;
+    scaleNumeral?: string | null;
+    showScaleNumeral?: boolean;
 }
 
 export function PianoKey({
     keyData,
     onPress,
     isHighlighted = false,
+    isScaleNote = false,
+    scaleNumeral = null,
+    showScaleNumeral = false,
 }: PianoKeyProps) {
     const [isActive, setIsActive] = useState(false);
     const { isPointerDown, setPointerDown, setLastPlayedNote, shouldPlayNote } =
@@ -70,7 +76,9 @@ export function PianoKey({
 
     const className = `piano-key ${
         keyData.isBlack ? "black-key" : "white-key"
-    }${isActive ? " active" : ""}${isHighlighted ? " highlighted" : ""}`;
+    }${isActive ? " active" : ""}${isHighlighted ? " highlighted" : ""}${
+        isScaleNote && !isHighlighted ? " scale-note" : ""
+    }`;
 
     const style: React.CSSProperties = {
         left: `${keyData.x}px`,
@@ -106,6 +114,11 @@ export function PianoKey({
             >
                 {keyData.baseNote}
             </span>
+            {showScaleNumeral && scaleNumeral && (
+                <span className="scale-numeral">
+                    {scaleNumeral}
+                </span>
+            )}
         </div>
     );
 }

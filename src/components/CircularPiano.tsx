@@ -5,7 +5,7 @@ import type {
     NoteWithOctave,
 } from "../types/music";
 import { PianoKey } from "./PianoKey";
-import { FREQUENCIES, NOTES } from "../utils/musicTheory";
+import { FREQUENCIES, NOTES, getScaleNotes, getScaleDegreeNumeral } from "../utils/musicTheory";
 import { useMusic } from "../contexts/MusicContext";
 import { useUI } from "../contexts/UIContext";
 import { useKeyPress } from "../hooks/useKeyPress";
@@ -15,7 +15,7 @@ export function CircularPiano() {
     const { state: uiState, actions: uiActions } = useUI();
     const handleKeyPress = useKeyPress();
 
-    const { selectedKey, mode, selectedChords } = musicState;
+    const { selectedKey, mode, selectedChords, scaleViewEnabled } = musicState;
     const { circularPianoRotation: rotation } = uiState;
     const containerRef = useRef<HTMLDivElement>(null);
     const [isDragging, setIsDragging] = useState(false);
@@ -101,6 +101,13 @@ export function CircularPiano() {
 
         return notes;
     }, [selectedChords]);
+
+    // Calculate which notes are in the current scale
+    const scaleNotes = useMemo(() => {
+        if (!scaleViewEnabled) return new Set<Note>();
+        const notes = getScaleNotes(selectedKey, mode);
+        return new Set(notes);
+    }, [scaleViewEnabled, selectedKey, mode]);
 
     const handleKeyPressCallback = (keyData: PianoKeyData) => {
         const frequency = FREQUENCIES[keyData.note];
@@ -193,14 +200,24 @@ export function CircularPiano() {
                     transition: isDragging ? "none" : "transform 0.3s ease"
                 }}
             >
-                {pianoKeys.map((keyData) => (
-                    <PianoKey
-                        key={keyData.note}
-                        keyData={keyData}
-                        onPress={handleKeyPressCallback}
-                        isHighlighted={highlightedNotes.has(keyData.baseNote)}
-                    />
-                ))}
+                {pianoKeys.map((keyData) => {
+                    const scaleNumeral = getScaleDegreeNumeral(
+                        keyData.baseNote,
+                        selectedKey,
+                        mode
+                    );
+                    return (
+                        <PianoKey
+                            key={keyData.note}
+                            keyData={keyData}
+                            onPress={handleKeyPressCallback}
+                            isHighlighted={highlightedNotes.has(keyData.baseNote)}
+                            isScaleNote={scaleNotes.has(keyData.baseNote)}
+                            scaleNumeral={scaleNumeral}
+                            showScaleNumeral={scaleViewEnabled}
+                        />
+                    );
+                })}
             </div>
         </div>
     );

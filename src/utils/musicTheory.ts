@@ -263,3 +263,67 @@ export function getNotesForChord(
         return `${note}${octave}`;
     });
 }
+
+/**
+ * Get all notes in a scale based on root note and mode
+ * @param rootNote - The root note of the scale
+ * @param mode - major or minor
+ * @returns Array of Note objects in the scale
+ */
+export function getScaleNotes(rootNote: Note, mode: Mode): Note[] {
+    const rootIndex = NOTES.indexOf(rootNote);
+    const scaleIntervals = SCALES[mode];
+
+    return scaleIntervals.map(interval => {
+        const noteIndex = (rootIndex + interval) % 12;
+        return NOTES[noteIndex];
+    });
+}
+
+/**
+ * Check if a note is in the current scale
+ * @param note - The note to check
+ * @param scaleNotes - Array of notes in the scale
+ * @returns true if the note is in the scale
+ */
+export function isNoteInScale(note: Note, scaleNotes: Note[]): boolean {
+    return scaleNotes.includes(note);
+}
+
+/**
+ * Get the Roman numeral for a note's scale degree
+ * @param note - The note to get the Roman numeral for
+ * @param keyRoot - The root note of the key
+ * @param mode - major or minor
+ * @returns Roman numeral (I, ii, iii, etc.) or null if not in scale
+ */
+export function getScaleDegreeNumeral(
+    note: Note,
+    keyRoot: Note,
+    mode: Mode
+): string | null {
+    const keyRootIndex = NOTES.indexOf(keyRoot);
+    const noteIndex = NOTES.indexOf(note);
+    const scale = SCALES[mode];
+
+    // Find which scale degree this note is
+    let scaleDegree = -1;
+    for (let i = 0; i < scale.length; i++) {
+        const scaleNoteIndex = (keyRootIndex + scale[i]) % 12;
+        if (scaleNoteIndex === noteIndex) {
+            scaleDegree = i;
+            break;
+        }
+    }
+
+    // If not in scale, return null
+    if (scaleDegree === -1) return null;
+
+    // Get the appropriate triad for this scale degree
+    const chords = CHORD_TYPES[mode];
+    if (scaleDegree < chords.triads.length) {
+        return chords.triads[scaleDegree].numeral;
+    }
+
+    return null;
+}

@@ -3,6 +3,7 @@ import { LinearPiano } from "./components/LinearPiano";
 import { ChordDisplay } from "./components/ChordDisplay";
 import { ViewToggle } from "./components/ViewToggle";
 import { InteractionModeToggle } from "./components/InteractionModeToggle";
+import { ScaleLearningToggle } from "./components/ScaleLearningToggle";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { InteractionProvider } from "./contexts/InteractionContext";
 import { MusicProvider } from "./contexts/MusicContext";
@@ -28,6 +29,7 @@ function AppContent() {
                 <div className="control-toggles">
                     <ViewToggle />
                     <InteractionModeToggle />
+                    <ScaleLearningToggle />
                 </div>
 
                 {uiState.viewMode === "circular" ? (

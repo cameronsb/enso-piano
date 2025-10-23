@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import type { Note, NoteWithOctave } from "../types/music";
 import { LinearPianoKey } from "./LinearPianoKey";
-import { FREQUENCIES, NOTES } from "../utils/musicTheory";
+import { FREQUENCIES, NOTES, getScaleNotes, getScaleDegreeNumeral } from "../utils/musicTheory";
 import { useMusic } from "../contexts/MusicContext";
 import { useKeyPress } from "../hooks/useKeyPress";
 
@@ -16,7 +16,7 @@ export function LinearPiano() {
     const { state: musicState, actions: musicActions } = useMusic();
     const handleKeyPress = useKeyPress();
 
-    const { selectedKey, mode, selectedChords } = musicState;
+    const { selectedKey, mode, selectedChords, scaleViewEnabled } = musicState;
     const pianoKeys = useMemo(() => {
         const keys: KeyData[] = [];
         const whiteNotes: Note[] = ["C", "D", "E", "F", "G", "A", "B"];
@@ -71,6 +71,13 @@ export function LinearPiano() {
         return notes;
     }, [selectedChords]);
 
+    // Calculate which notes are in the current scale
+    const scaleNotes = useMemo(() => {
+        if (!scaleViewEnabled) return new Set<Note>();
+        const notes = getScaleNotes(selectedKey, mode);
+        return new Set(notes);
+    }, [scaleViewEnabled, selectedKey, mode]);
+
     const handleKeyPressCallback = (keyData: KeyData) => {
         const frequency = FREQUENCIES[keyData.note];
         if (frequency) {
@@ -87,7 +94,9 @@ export function LinearPiano() {
                 className={`piano-info-display ${
                     selectedChords.length > 0 ? "clickable" : ""
                 }`}
-                onClick={() => selectedChords.length > 0 && musicActions.deselectChords()}
+                onClick={() =>
+                    selectedChords.length > 0 && musicActions.deselectChords()
+                }
             >
                 <div className="selected-key-linear">{selectedKey}</div>
                 <div className="key-mode-linear">
@@ -102,30 +111,50 @@ export function LinearPiano() {
 
             <div className="piano-keyboard">
                 <div className="white-keys-container">
-                    {whiteKeys.map((keyData, index) => (
-                        <LinearPianoKey
-                            key={keyData.note}
-                            keyData={keyData}
-                            onPress={handleKeyPressCallback}
-                            isHighlighted={highlightedNotes.has(
-                                keyData.baseNote
-                            )}
-                            position={index}
-                        />
-                    ))}
+                    {whiteKeys.map((keyData, index) => {
+                        const scaleNumeral = getScaleDegreeNumeral(
+                            keyData.baseNote,
+                            selectedKey,
+                            mode
+                        );
+                        return (
+                            <LinearPianoKey
+                                key={keyData.note}
+                                keyData={keyData}
+                                onPress={handleKeyPressCallback}
+                                isHighlighted={highlightedNotes.has(
+                                    keyData.baseNote
+                                )}
+                                isScaleNote={scaleNotes.has(keyData.baseNote)}
+                                position={index}
+                                scaleNumeral={scaleNumeral}
+                                showScaleNumeral={scaleViewEnabled}
+                            />
+                        );
+                    })}
                 </div>
                 <div className="black-keys-container">
-                    {blackKeys.map((keyData) => (
-                        <LinearPianoKey
-                            key={keyData.note}
-                            keyData={keyData}
-                            onPress={handleKeyPressCallback}
-                            isHighlighted={highlightedNotes.has(
-                                keyData.baseNote
-                            )}
-                            isBlackKey={true}
-                        />
-                    ))}
+                    {blackKeys.map((keyData) => {
+                        const scaleNumeral = getScaleDegreeNumeral(
+                            keyData.baseNote,
+                            selectedKey,
+                            mode
+                        );
+                        return (
+                            <LinearPianoKey
+                                key={keyData.note}
+                                keyData={keyData}
+                                onPress={handleKeyPressCallback}
+                                isHighlighted={highlightedNotes.has(
+                                    keyData.baseNote
+                                )}
+                                isScaleNote={scaleNotes.has(keyData.baseNote)}
+                                isBlackKey={true}
+                                scaleNumeral={scaleNumeral}
+                                showScaleNumeral={scaleViewEnabled}
+                            />
+                        );
+                    })}
                 </div>
             </div>
         </div>

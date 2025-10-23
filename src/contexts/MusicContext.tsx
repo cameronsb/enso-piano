@@ -10,6 +10,7 @@ interface MusicState {
     selectedChords: SelectedChord[];
     chordDisplayMode: ChordDisplayMode;
     chordProgression: ChordInProgression[];
+    scaleViewEnabled: boolean;
     playbackState: {
         isPlaying: boolean;
         currentBeat: number;
@@ -30,6 +31,7 @@ type MusicAction =
     | { type: "REMOVE_FROM_PROGRESSION"; payload: string }
     | { type: "CLEAR_PROGRESSION" }
     | { type: "UPDATE_CHORD_DURATION"; payload: { id: string; duration: number } }
+    | { type: "TOGGLE_SCALE_VIEW" }
     | { type: "SET_PLAYBACK_PLAYING"; payload: boolean }
     | { type: "SET_PLAYBACK_BEAT"; payload: number }
     | { type: "SET_TEMPO"; payload: number }
@@ -43,6 +45,7 @@ const initialState: MusicState = {
     selectedChords: [],
     chordDisplayMode: "select",
     chordProgression: [],
+    scaleViewEnabled: false,
     playbackState: {
         isPlaying: false,
         currentBeat: 0,
@@ -90,6 +93,9 @@ function musicReducer(state: MusicState, action: MusicAction): MusicState {
 
         case "CLEAR_PROGRESSION":
             return { ...state, chordProgression: [] };
+
+        case "TOGGLE_SCALE_VIEW":
+            return { ...state, scaleViewEnabled: !state.scaleViewEnabled };
 
         case "UPDATE_CHORD_DURATION":
             return {
@@ -148,6 +154,7 @@ interface MusicContextType {
         removeFromProgression: (id: string) => void;
         clearProgression: () => void;
         updateChordDuration: (id: string, duration: number) => void;
+        toggleScaleView: () => void;
         setPlaybackPlaying: (playing: boolean) => void;
         setPlaybackBeat: (beat: number) => void;
         setTempo: (tempo: number) => void;
@@ -178,12 +185,22 @@ export function MusicProvider({ children }: MusicProviderProps) {
 
     const selectChord = useCallback(
         (rootNote: Note, intervals: number[], numeral: string) => {
+            // Check if this chord is already selected
+            const isAlreadySelected = state.selectedChords.length > 0 &&
+                state.selectedChords[0].rootNote === rootNote &&
+                state.selectedChords[0].numeral === numeral &&
+                JSON.stringify(state.selectedChords[0].intervals) === JSON.stringify(intervals);
+
             if (state.chordDisplayMode === "select") {
-                // Select mode - replace current selection
-                dispatch({
-                    type: "SELECT_CHORD",
-                    payload: { rootNote, intervals, numeral },
-                });
+                // Select mode - toggle selection
+                if (isAlreadySelected) {
+                    dispatch({ type: "DESELECT_CHORDS" });
+                } else {
+                    dispatch({
+                        type: "SELECT_CHORD",
+                        payload: { rootNote, intervals, numeral },
+                    });
+                }
             } else {
                 // Build mode - add to progression
                 const newChord: ChordInProgression = {
@@ -205,7 +222,7 @@ export function MusicProvider({ children }: MusicProviderProps) {
                 });
             }
         },
-        [state.chordDisplayMode]
+        [state.chordDisplayMode, state.selectedChords]
     );
 
     const deselectChords = useCallback(() => {
@@ -226,6 +243,10 @@ export function MusicProvider({ children }: MusicProviderProps) {
 
     const updateChordDuration = useCallback((id: string, duration: number) => {
         dispatch({ type: "UPDATE_CHORD_DURATION", payload: { id, duration } });
+    }, []);
+
+    const toggleScaleView = useCallback(() => {
+        dispatch({ type: "TOGGLE_SCALE_VIEW" });
     }, []);
 
     const setPlaybackPlaying = useCallback((playing: boolean) => {
@@ -259,6 +280,7 @@ export function MusicProvider({ children }: MusicProviderProps) {
             removeFromProgression,
             clearProgression,
             updateChordDuration,
+            toggleScaleView,
             setPlaybackPlaying,
             setPlaybackBeat,
             setTempo,
