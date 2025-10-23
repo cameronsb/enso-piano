@@ -1,6 +1,8 @@
 import { createContext, useContext, useReducer, useCallback, ReactNode } from "react";
 import type { Note, Mode, SelectedChord, ChordDisplayMode, ChordInProgression } from "../types/music";
 
+export type NoteSubdivision = "whole" | "quarter" | "eighth";
+
 // State interface
 interface MusicState {
     selectedKey: Note;
@@ -8,6 +10,13 @@ interface MusicState {
     selectedChords: SelectedChord[];
     chordDisplayMode: ChordDisplayMode;
     chordProgression: ChordInProgression[];
+    playbackState: {
+        isPlaying: boolean;
+        currentBeat: number;
+        tempo: number;
+        loop: boolean;
+        subdivision: NoteSubdivision;
+    };
 }
 
 // Action types
@@ -19,7 +28,13 @@ type MusicAction =
     | { type: "SET_CHORD_DISPLAY_MODE"; payload: ChordDisplayMode }
     | { type: "ADD_TO_PROGRESSION"; payload: ChordInProgression }
     | { type: "REMOVE_FROM_PROGRESSION"; payload: string }
-    | { type: "CLEAR_PROGRESSION" };
+    | { type: "CLEAR_PROGRESSION" }
+    | { type: "UPDATE_CHORD_DURATION"; payload: { id: string; duration: number } }
+    | { type: "SET_PLAYBACK_PLAYING"; payload: boolean }
+    | { type: "SET_PLAYBACK_BEAT"; payload: number }
+    | { type: "SET_TEMPO"; payload: number }
+    | { type: "TOGGLE_LOOP" }
+    | { type: "SET_SUBDIVISION"; payload: NoteSubdivision };
 
 // Initial state
 const initialState: MusicState = {
@@ -28,6 +43,13 @@ const initialState: MusicState = {
     selectedChords: [],
     chordDisplayMode: "select",
     chordProgression: [],
+    playbackState: {
+        isPlaying: false,
+        currentBeat: 0,
+        tempo: 120,
+        loop: false,
+        subdivision: "quarter",
+    },
 };
 
 // Reducer
@@ -69,6 +91,46 @@ function musicReducer(state: MusicState, action: MusicAction): MusicState {
         case "CLEAR_PROGRESSION":
             return { ...state, chordProgression: [] };
 
+        case "UPDATE_CHORD_DURATION":
+            return {
+                ...state,
+                chordProgression: state.chordProgression.map(chord =>
+                    chord.id === action.payload.id
+                        ? { ...chord, duration: action.payload.duration }
+                        : chord
+                ),
+            };
+
+        case "SET_PLAYBACK_PLAYING":
+            return {
+                ...state,
+                playbackState: { ...state.playbackState, isPlaying: action.payload },
+            };
+
+        case "SET_PLAYBACK_BEAT":
+            return {
+                ...state,
+                playbackState: { ...state.playbackState, currentBeat: action.payload },
+            };
+
+        case "SET_TEMPO":
+            return {
+                ...state,
+                playbackState: { ...state.playbackState, tempo: action.payload },
+            };
+
+        case "TOGGLE_LOOP":
+            return {
+                ...state,
+                playbackState: { ...state.playbackState, loop: !state.playbackState.loop },
+            };
+
+        case "SET_SUBDIVISION":
+            return {
+                ...state,
+                playbackState: { ...state.playbackState, subdivision: action.payload },
+            };
+
         default:
             return state;
     }
@@ -85,6 +147,12 @@ interface MusicContextType {
         setChordDisplayMode: (mode: ChordDisplayMode) => void;
         removeFromProgression: (id: string) => void;
         clearProgression: () => void;
+        updateChordDuration: (id: string, duration: number) => void;
+        setPlaybackPlaying: (playing: boolean) => void;
+        setPlaybackBeat: (beat: number) => void;
+        setTempo: (tempo: number) => void;
+        toggleLoop: () => void;
+        setSubdivision: (subdivision: NoteSubdivision) => void;
     };
 }
 
@@ -156,6 +224,30 @@ export function MusicProvider({ children }: MusicProviderProps) {
         dispatch({ type: "CLEAR_PROGRESSION" });
     }, []);
 
+    const updateChordDuration = useCallback((id: string, duration: number) => {
+        dispatch({ type: "UPDATE_CHORD_DURATION", payload: { id, duration } });
+    }, []);
+
+    const setPlaybackPlaying = useCallback((playing: boolean) => {
+        dispatch({ type: "SET_PLAYBACK_PLAYING", payload: playing });
+    }, []);
+
+    const setPlaybackBeat = useCallback((beat: number) => {
+        dispatch({ type: "SET_PLAYBACK_BEAT", payload: beat });
+    }, []);
+
+    const setTempo = useCallback((tempo: number) => {
+        dispatch({ type: "SET_TEMPO", payload: tempo });
+    }, []);
+
+    const toggleLoop = useCallback(() => {
+        dispatch({ type: "TOGGLE_LOOP" });
+    }, []);
+
+    const setSubdivision = useCallback((subdivision: NoteSubdivision) => {
+        dispatch({ type: "SET_SUBDIVISION", payload: subdivision });
+    }, []);
+
     const value: MusicContextType = {
         state,
         actions: {
@@ -166,6 +258,12 @@ export function MusicProvider({ children }: MusicProviderProps) {
             setChordDisplayMode,
             removeFromProgression,
             clearProgression,
+            updateChordDuration,
+            setPlaybackPlaying,
+            setPlaybackBeat,
+            setTempo,
+            toggleLoop,
+            setSubdivision,
         },
     };
 

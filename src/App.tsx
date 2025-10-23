@@ -13,9 +13,9 @@ function AppContent() {
 
     return (
         <InteractionProvider>
+            <ThemeToggle />
             <div className="container">
                 <div className="title">
-                    <ThemeToggle />
                     <h1>円相 Enso Piano</h1>
                     <p className="subtitle">Circular Harmony Explorer</p>
                     {uiState.isAudioLoading && (

@@ -2,6 +2,7 @@ import { ModeToggle } from "./ModeToggle";
 import { ChordGrid } from "./ChordGrid";
 import { ChordDisplayModeToggle } from "./ChordDisplayModeToggle";
 import { ChordProgressionTrack } from "./ChordProgressionTrack";
+import { PlaybackControls } from "./PlaybackControls";
 import { CHORD_TYPES } from "../utils/musicTheory";
 import { useMusic } from "../contexts/MusicContext";
 import { useChordPlayer } from "../hooks/useChordPlayer";
@@ -16,6 +17,7 @@ export function ChordDisplay() {
         selectedChords,
         chordDisplayMode,
         chordProgression,
+        playbackState,
     } = musicState;
     const chords = CHORD_TYPES[mode];
 
@@ -27,14 +29,22 @@ export function ChordDisplay() {
             </div>
 
             {chordDisplayMode === "build" && (
-                <ChordProgressionTrack
-                    chords={chordProgression}
-                    timeSignature={{ beats: 4, noteValue: 4 }}
-                    onRemoveChord={musicActions.removeFromProgression}
-                    onClearAll={musicActions.clearProgression}
-                    selectedKey={selectedKey}
-                    mode={mode}
-                />
+                <>
+                    <PlaybackControls />
+                    <ChordProgressionTrack
+                        chords={chordProgression}
+                        timeSignature={{ beats: 4, noteValue: 4 }}
+                        onRemoveChord={musicActions.removeFromProgression}
+                        onClearAll={musicActions.clearProgression}
+                        onUpdateDuration={musicActions.updateChordDuration}
+                        selectedKey={selectedKey}
+                        mode={mode}
+                        currentBeat={playbackState.currentBeat}
+                        isPlaying={playbackState.isPlaying}
+                        tempo={playbackState.tempo}
+                        subdivision={playbackState.subdivision}
+                    />
+                </>
             )}
 
             <ChordGrid

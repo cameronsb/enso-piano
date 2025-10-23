@@ -95,7 +95,13 @@ export function PianoKey({
             onTouchStart={handleTouchStart}
         >
             <span
-                className="key-label"
+                className="key-label key-label-top"
+                style={labelFontSize ? { fontSize: labelFontSize } : undefined}
+            >
+                {keyData.baseNote}
+            </span>
+            <span
+                className="key-label key-label-bottom"
                 style={labelFontSize ? { fontSize: labelFontSize } : undefined}
             >
                 {keyData.baseNote}

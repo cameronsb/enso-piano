@@ -1,4 +1,5 @@
 import { createContext, useContext, useReducer, useCallback, useEffect, ReactNode } from "react";
+import { useLocalStorage } from "usehooks-ts";
 import type { ViewMode, InteractionMode } from "../types/music";
 
 // State interface
@@ -71,7 +72,14 @@ interface UIProviderProps {
 }
 
 export function UIProvider({ children }: UIProviderProps) {
-    const [state, dispatch] = useReducer(uiReducer, initialState);
+    // Use localStorage for dark mode preference
+    const [darkModePreference, setDarkModePreference] = useLocalStorage("enso-piano-dark-mode", false);
+
+    // Initialize reducer with localStorage value
+    const [state, dispatch] = useReducer(uiReducer, {
+        ...initialState,
+        isDarkMode: darkModePreference,
+    });
 
     // Apply theme to document when dark mode changes
     useEffect(() => {
@@ -80,7 +88,9 @@ export function UIProvider({ children }: UIProviderProps) {
         } else {
             document.documentElement.removeAttribute("data-theme");
         }
-    }, [state.isDarkMode]);
+        // Sync to localStorage
+        setDarkModePreference(state.isDarkMode);
+    }, [state.isDarkMode, setDarkModePreference]);
 
     // Action creators
     const setViewMode = useCallback((mode: ViewMode) => {
