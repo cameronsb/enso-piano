@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Enso Piano - Circular Harmony Explorer</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            :root {
+                --bg-primary: #fafaf9;
+                --bg-secondary: #f5f5f4;
+                --text-primary: #1c1917;
+                --text-secondary: #78716c;
+                --accent: #dc2626;
+                --white-key: #ffffff;
+                --black-key: #292524;
+                --shadow: rgba(0, 0, 0, 0.1);
+                --hover-glow: rgba(220, 38, 38, 0.3);
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI",
+                    system-ui, sans-serif;
+                background: var(--bg-primary);
+                color: var(--text-primary);
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+                overflow-x: hidden;
+            }
+
+            .container {
+                width: 100%;
+                max-width: 1200px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 40px;
+            }
+
+            .title {
+                text-align: center;
+                margin-bottom: 10px;
+            }
+
+            .title h1 {
+                font-size: 2rem;
+                font-weight: 300;
+                letter-spacing: 0.05em;
+                color: var(--text-primary);
+                margin-bottom: 8px;
+            }
+
+            .title .subtitle {
+                color: var(--text-secondary);
+                font-size: 0.9rem;
+                letter-spacing: 0.02em;
+            }
+
+            .piano-container {
+                position: relative;
+                width: 500px;
+                height: 500px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .center-circle {
+                position: absolute;
+                width: 200px;
+                height: 200px;
+                border-radius: 50%;
+                background: var(--bg-secondary);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                flex-direction: column;
+                box-shadow: inset 0 2px 10px var(--shadow);
+                z-index: 10;
+            }
+
+            .selected-key {
+                font-size: 2.5rem;
+                font-weight: 300;
+                color: var(--text-primary);
+                margin-bottom: 8px;
+            }
+
+            .key-mode {
+                font-size: 0.9rem;
+                color: var(--text-secondary);
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+            }
+
+            .piano-key {
+                position: absolute;
+                cursor: pointer;
+                transform-origin: center;
+                transition: all 0.2s ease;
+                user-select: none;
+            }
+
+            .white-key {
+                width: 50px;
+                height: 120px;
+                background: var(--white-key);
+                border: 1px solid #e5e5e5;
+                border-radius: 0 0 8px 8px;
+                box-shadow: 0 2px 8px var(--shadow);
+            }
+
+            .black-key {
+                width: 35px;
+                height: 90px;
+                background: var(--black-key);
+                border-radius: 0 0 6px 6px;
+                box-shadow: 0 2px 8px var(--shadow);
+                z-index: 2;
+            }
+
+            .piano-key:hover {
+                transform: scale(1.05);
+                box-shadow: 0 0 20px var(--hover-glow);
+            }
+
+            .piano-key.active {
+                transform: scale(0.95);
+                box-shadow: inset 0 2px 10px var(--shadow);
+            }
+
+            .white-key.active {
+                background: var(--bg-secondary);
+            }
+
+            .black-key.active {
+                background: var(--text-secondary);
+            }
+
+            .key-label {
+                position: absolute;
+                bottom: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                font-size: 0.8rem;
+                font-weight: 500;
+                pointer-events: none;
+            }
+
+            .white-key .key-label {
+                color: var(--text-secondary);
+            }
+
+            .black-key .key-label {
+                color: var(--white-key);
+                bottom: 8px;
+                font-size: 0.7rem;
+            }
+
+            /* Octave indicator - subtle dot for higher octave */
+            .piano-key[data-note$="5"]::before {
+                content: "";
+                position: absolute;
+                width: 4px;
+                height: 4px;
+                background: var(--accent);
+                border-radius: 50%;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                opacity: 0.6;
+            }
+
+            .black-key[data-note$="5"]::before {
+                background: var(--white-key);
+                opacity: 0.5;
+                top: 8px;
+            }
+
+            .chords-display {
+                width: 100%;
+                max-width: 800px;
+                background: var(--bg-secondary);
+                border-radius: 16px;
+                padding: 30px;
+                box-shadow: 0 4px 20px var(--shadow);
+            }
+
+            .chord-section {
+                margin-bottom: 25px;
+            }
+
+            .chord-section:last-child {
+                margin-bottom: 0;
+            }
+
+            .chord-section h3 {
+                font-size: 1rem;
+                font-weight: 500;
+                color: var(--text-secondary);
+                margin-bottom: 15px;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+            }
+
+            .chord-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+                gap: 12px;
+            }
+
+            .chord-item {
+                background: var(--white-key);
+                border-radius: 8px;
+                padding: 12px;
+                text-align: center;
+                transition: all 0.2s ease;
+                cursor: pointer;
+                border: 1px solid transparent;
+            }
+
+            .chord-item:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 12px var(--shadow);
+                border-color: var(--accent);
+            }
+
+            .chord-numeral {
+                font-size: 0.75rem;
+                color: var(--text-secondary);
+                margin-bottom: 4px;
+            }
+
+            .chord-name {
+                font-size: 1.1rem;
+                font-weight: 500;
+                color: var(--text-primary);
+            }
+
+            .mode-toggle {
+                display: flex;
+                gap: 10px;
+                margin-bottom: 30px;
+                justify-content: center;
+            }
+
+            .mode-btn {
+                padding: 8px 20px;
+                background: var(--white-key);
+                border: 1px solid #e5e5e5;
+                border-radius: 20px;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                font-size: 0.9rem;
+                color: var(--text-primary);
+            }
+
+            .mode-btn.active {
+                background: var(--accent);
+                color: white;
+                border-color: var(--accent);
+            }
+
+            @media (max-width: 600px) {
+                .piano-container {
+                    width: 350px;
+                    height: 350px;
+                }
+
+                .center-circle {
+                    width: 140px;
+                    height: 140px;
+                }
+
+                .white-key {
+                    width: 35px;
+                    height: 85px;
+                }
+
+                .black-key {
+                    width: 25px;
+                    height: 60px;
+                }
+
+                .selected-key {
+                    font-size: 2rem;
+                }
+
+                .key-label {
+                    font-size: 0.65rem;
+                }
+
+                .black-key .key-label {
+                    font-size: 0.55rem;
+                }
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="title">
+                <h1>円相 Enso Piano</h1>
+                <p class="subtitle">Circular Harmony Explorer</p>
+            </div>
+
+            <div class="piano-container">
+                <div class="center-circle">
+                    <div class="selected-key" id="selectedKey">C</div>
+                    <div class="key-mode" id="keyMode">Major</div>
+                </div>
+                <div id="pianoKeys"></div>
+            </div>
+
+            <div class="chords-display">
+                <div class="mode-toggle">
+                    <button class="mode-btn active" data-mode="major">
+                        Major
+                    </button>
+                    <button class="mode-btn" data-mode="minor">Minor</button>
+                </div>
+                <div id="chordsContainer"></div>
+            </div>
+        </div>
+
+        <script>
+            // Audio Context and Sound Generation
+            class AudioEngine {
+                constructor() {
+                    this.context = null;
+                    this.masterGain = null;
+                    this.initialized = false;
+                }
+
+                init() {
+                    if (this.initialized) return;
+                    this.context = new (window.AudioContext ||
+                        window.webkitAudioContext)();
+                    this.masterGain = this.context.createGain();
+                    this.masterGain.gain.value = 0.3;
+                    this.masterGain.connect(this.context.destination);
+                    this.initialized = true;
+                }
+
+                playNote(frequency, duration = 0.3) {
+                    if (!this.initialized) this.init();
+
+                    const oscillator = this.context.createOscillator();
+                    const gainNode = this.context.createGain();
+
+                    oscillator.type = "triangle";
+                    oscillator.frequency.value = frequency;
+
+                    gainNode.gain.setValueAtTime(0, this.context.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(
+                        0.4,
+                        this.context.currentTime + 0.01
+                    );
+                    gainNode.gain.exponentialRampToValueAtTime(
+                        0.001,
+                        this.context.currentTime + duration
+                    );
+
+                    oscillator.connect(gainNode);
+                    gainNode.connect(this.masterGain);
+
+                    oscillator.start(this.context.currentTime);
+                    oscillator.stop(this.context.currentTime + duration);
+                }
+
+                playChord(frequencies, duration = 0.5) {
+                    frequencies.forEach((freq) =>
+                        this.playNote(freq, duration)
+                    );
+                }
+            }
+
+            // Music Theory Data
+            const MusicTheory = {
+                notes: [
+                    "C",
+                    "C#",
+                    "D",
+                    "D#",
+                    "E",
+                    "F",
+                    "F#",
+                    "G",
+                    "G#",
+                    "A",
+                    "A#",
+                    "B",
+                ],
+
+                // Two octaves of frequencies
+                frequencies: {
+                    C4: 261.63,
+                    "C#4": 277.18,
+                    D4: 293.66,
+                    "D#4": 311.13,
+                    E4: 329.63,
+                    F4: 349.23,
+                    "F#4": 369.99,
+                    G4: 392.0,
+                    "G#4": 415.3,
+                    A4: 440.0,
+                    "A#4": 466.16,
+                    B4: 493.88,
+                    C5: 523.25,
+                    "C#5": 554.37,
+                    D5: 587.33,
+                    "D#5": 622.25,
+                    E5: 659.25,
+                    F5: 698.46,
+                    "F#5": 739.99,
+                    G5: 783.99,
+                    "G#5": 830.61,
+                    A5: 880.0,
+                    "A#5": 932.33,
+                    B5: 987.77,
+                },
+
+                // Keep single octave for chord calculations
+                baseFrequencies: {
+                    C: 261.63,
+                    "C#": 277.18,
+                    D: 293.66,
+                    "D#": 311.13,
+                    E: 329.63,
+                    F: 349.23,
+                    "F#": 369.99,
+                    G: 392.0,
+                    "G#": 415.3,
+                    A: 440.0,
+                    "A#": 466.16,
+                    B: 493.88,
+                },
+
+                scales: {
+                    major: [0, 2, 4, 5, 7, 9, 11],
+                    minor: [0, 2, 3, 5, 7, 8, 10],
+                },
+
+                chordTypes: {
+                    major: {
+                        triads: [
+                            { numeral: "I", type: "maj", intervals: [0, 4, 7] },
+                            {
+                                numeral: "ii",
+                                type: "min",
+                                intervals: [0, 3, 7],
+                            },
+                            {
+                                numeral: "iii",
+                                type: "min",
+                                intervals: [0, 3, 7],
+                            },
+                            {
+                                numeral: "IV",
+                                type: "maj",
+                                intervals: [0, 4, 7],
+                            },
+                            { numeral: "V", type: "maj", intervals: [0, 4, 7] },
+                            {
+                                numeral: "vi",
+                                type: "min",
+                                intervals: [0, 3, 7],
+                            },
+                            {
+                                numeral: "vii°",
+                                type: "dim",
+                                intervals: [0, 3, 6],
+                            },
+                        ],
+                        sevenths: [
+                            {
+                                numeral: "Imaj7",
+                                type: "maj7",
+                                intervals: [0, 4, 7, 11],
+                            },
+                            {
+                                numeral: "ii7",
+                                type: "min7",
+                                intervals: [0, 3, 7, 10],
+                            },
+                            {
+                                numeral: "iii7",
+                                type: "min7",
+                                intervals: [0, 3, 7, 10],
+                            },
+                            {
+                                numeral: "IVmaj7",
+                                type: "maj7",
+                                intervals: [0, 4, 7, 11],
+                            },
+                            {
+                                numeral: "V7",
+                                type: "dom7",
+                                intervals: [0, 4, 7, 10],
+                            },
+                            {
+                                numeral: "vi7",
+                                type: "min7",
+                                intervals: [0, 3, 7, 10],
+                            },
+                            {
+                                numeral: "viiø7",
+                                type: "half-dim7",
+                                intervals: [0, 3, 6, 10],
+                            },
+                        ],
+                    },
+                    minor: {
+                        triads: [
+                            { numeral: "i", type: "min", intervals: [0, 3, 7] },
+                            {
+                                numeral: "ii°",
+                                type: "dim",
+                                intervals: [0, 3, 6],
+                            },
+                            {
+                                numeral: "III",
+                                type: "maj",
+                                intervals: [0, 4, 7],
+                            },
+                            {
+                                numeral: "iv",
+                                type: "min",
+                                intervals: [0, 3, 7],
+                            },
+                            { numeral: "v", type: "min", intervals: [0, 3, 7] },
+                            {
+                                numeral: "VI",
+                                type: "maj",
+                                intervals: [0, 4, 7],
+                            },
+                            {
+                                numeral: "VII",
+                                type: "maj",
+                                intervals: [0, 4, 7],
+                            },
+                        ],
+                        sevenths: [
+                            {
+                                numeral: "i7",
+                                type: "min7",
+                                intervals: [0, 3, 7, 10],
+                            },
+                            {
+                                numeral: "iiø7",
+                                type: "half-dim7",
+                                intervals: [0, 3, 6, 10],
+                            },
+                            {
+                                numeral: "IIImaj7",
+                                type: "maj7",
+                                intervals: [0, 4, 7, 11],
+                            },
+                            {
+                                numeral: "iv7",
+                                type: "min7",
+                                intervals: [0, 3, 7, 10],
+                            },
+                            {
+                                numeral: "v7",
+                                type: "min7",
+                                intervals: [0, 3, 7, 10],
+                            },
+                            {
+                                numeral: "VImaj7",
+                                type: "maj7",
+                                intervals: [0, 4, 7, 11],
+                            },
+                            {
+                                numeral: "VII7",
+                                type: "dom7",
+                                intervals: [0, 4, 7, 10],
+                            },
+                        ],
+                    },
+                },
+
+                getChordName(rootNote, scaleType, degree) {
+                    const noteIndex = this.notes.indexOf(rootNote);
+                    const scale = this.scales[scaleType];
+                    const chordRootIndex = (noteIndex + scale[degree]) % 12;
+                    return this.notes[chordRootIndex];
+                },
+            };
+
+            // Piano App
+            class CircularPiano {
+                constructor() {
+                    this.audio = new AudioEngine();
+                    this.selectedKey = "C";
+                    this.currentMode = "major";
+                    this.init();
+                }
+
+                init() {
+                    this.createPianoKeys();
+                    this.attachEventListeners();
+                    this.updateChordDisplay();
+                }
+
+                createPianoKeys() {
+                    const container = document.getElementById("pianoKeys");
+                    const radius = 190;
+                    const totalWhiteKeys = 14; // 2 octaves: C D E F G A B C D E F G A B
+                    const whiteKeysPattern = [
+                        "C",
+                        "D",
+                        "E",
+                        "F",
+                        "G",
+                        "A",
+                        "B",
+                    ];
+                    const blackKeysPattern = [
+                        "C#",
+                        "D#",
+                        null,
+                        "F#",
+                        "G#",
+                        "A#",
+                        null,
+                    ]; // null for E-F and B-C gaps
+
+                    // Create white keys for 2 octaves
+                    for (let octave = 0; octave < 2; octave++) {
+                        whiteKeysPattern.forEach((note, index) => {
+                            const keyIndex = octave * 7 + index;
+                            const angle =
+                                (keyIndex * 360) / totalWhiteKeys - 90;
+                            const radian = (angle * Math.PI) / 180;
+                            const x = Math.cos(radian) * radius;
+                            const y = Math.sin(radian) * radius;
+
+                            const key = document.createElement("div");
+                            key.className = "piano-key white-key";
+                            const octaveNum = octave + 4; // Start from C4
+                            key.dataset.note = `${note}${octaveNum}`;
+                            key.dataset.baseNote = note;
+                            key.style.left = `${250 + x - 25}px`;
+                            key.style.top = `${250 + y - 60}px`;
+                            key.style.transform = `rotate(${angle + 90}deg)`;
+
+                            const label = document.createElement("span");
+                            label.className = "key-label";
+                            label.textContent = note;
+                            if (octave === 1) {
+                                label.style.fontSize = "0.7rem";
+                            }
+                            key.appendChild(label);
+
+                            container.appendChild(key);
+                        });
+                    }
+
+                    // Create black keys for 2 octaves
+                    for (let octave = 0; octave < 2; octave++) {
+                        blackKeysPattern.forEach((note, index) => {
+                            if (note === null) return; // Skip gaps between E-F and B-C
+
+                            const keyIndex = octave * 7 + index;
+                            // Position black keys between white keys
+                            const angle =
+                                ((keyIndex + 0.5) * 360) / totalWhiteKeys - 90;
+                            const radian = (angle * Math.PI) / 180;
+                            const blackRadius = radius - 25;
+                            const x = Math.cos(radian) * blackRadius;
+                            const y = Math.sin(radian) * blackRadius;
+
+                            const key = document.createElement("div");
+                            key.className = "piano-key black-key";
+                            const octaveNum = octave + 4;
+                            key.dataset.note = `${note}${octaveNum}`;
+                            key.dataset.baseNote = note;
+                            key.style.left = `${250 + x - 18}px`;
+                            key.style.top = `${250 + y - 45}px`;
+                            key.style.transform = `rotate(${angle + 90}deg)`;
+
+                            const label = document.createElement("span");
+                            label.className = "key-label";
+                            label.textContent = note;
+                            if (octave === 1) {
+                                label.style.fontSize = "0.6rem";
+                            }
+                            key.appendChild(label);
+
+                            container.appendChild(key);
+                        });
+                    }
+                }
+
+                attachEventListeners() {
+                    // Piano keys
+                    document.querySelectorAll(".piano-key").forEach((key) => {
+                        key.addEventListener("mousedown", (e) =>
+                            this.handleKeyPress(e)
+                        );
+                        key.addEventListener("touchstart", (e) =>
+                            this.handleKeyPress(e)
+                        );
+                        key.addEventListener("mouseup", (e) =>
+                            this.handleKeyRelease(e)
+                        );
+                        key.addEventListener("touchend", (e) =>
+                            this.handleKeyRelease(e)
+                        );
+                        key.addEventListener("mouseleave", (e) =>
+                            this.handleKeyRelease(e)
+                        );
+                    });
+
+                    // Mode toggle buttons
+                    document.querySelectorAll(".mode-btn").forEach((btn) => {
+                        btn.addEventListener("click", (e) => {
+                            document
+                                .querySelectorAll(".mode-btn")
+                                .forEach((b) => b.classList.remove("active"));
+                            e.target.classList.add("active");
+                            this.currentMode = e.target.dataset.mode;
+                            this.updateChordDisplay();
+                            document.getElementById("keyMode").textContent =
+                                this.currentMode.charAt(0).toUpperCase() +
+                                this.currentMode.slice(1);
+                        });
+                    });
+
+                    // Chord items
+                    document.addEventListener("click", (e) => {
+                        if (e.target.closest(".chord-item")) {
+                            this.playChordFromElement(
+                                e.target.closest(".chord-item")
+                            );
+                        }
+                    });
+                }
+
+                handleKeyPress(e) {
+                    e.preventDefault();
+                    const key = e.currentTarget;
+                    const note = key.dataset.note; // e.g., "C4" or "C#5"
+                    const baseNote = key.dataset.baseNote; // e.g., "C" or "C#"
+
+                    key.classList.add("active");
+                    this.audio.playNote(MusicTheory.frequencies[note]);
+
+                    this.selectedKey = baseNote;
+                    document.getElementById("selectedKey").textContent =
+                        baseNote;
+                    this.updateChordDisplay();
+                }
+
+                handleKeyRelease(e) {
+                    e.currentTarget.classList.remove("active");
+                }
+
+                updateChordDisplay() {
+                    const container =
+                        document.getElementById("chordsContainer");
+                    container.innerHTML = "";
+
+                    const chords = MusicTheory.chordTypes[this.currentMode];
+
+                    // Triads section
+                    const triadsSection = document.createElement("div");
+                    triadsSection.className = "chord-section";
+                    triadsSection.innerHTML = "<h3>Triads</h3>";
+                    const triadsGrid = document.createElement("div");
+                    triadsGrid.className = "chord-grid";
+
+                    chords.triads.forEach((chord, index) => {
+                        const chordName = MusicTheory.getChordName(
+                            this.selectedKey,
+                            this.currentMode,
+                            index
+                        );
+                        const chordItem = this.createChordElement(
+                            chord.numeral,
+                            chordName,
+                            chord
+                        );
+                        triadsGrid.appendChild(chordItem);
+                    });
+
+                    triadsSection.appendChild(triadsGrid);
+                    container.appendChild(triadsSection);
+
+                    // Seventh chords section
+                    const seventhsSection = document.createElement("div");
+                    seventhsSection.className = "chord-section";
+                    seventhsSection.innerHTML = "<h3>Seventh Chords</h3>";
+                    const seventhsGrid = document.createElement("div");
+                    seventhsGrid.className = "chord-grid";
+
+                    chords.sevenths.forEach((chord, index) => {
+                        const chordName = MusicTheory.getChordName(
+                            this.selectedKey,
+                            this.currentMode,
+                            index
+                        );
+                        const chordItem = this.createChordElement(
+                            chord.numeral,
+                            chordName,
+                            chord
+                        );
+                        seventhsGrid.appendChild(chordItem);
+                    });
+
+                    seventhsSection.appendChild(seventhsGrid);
+                    container.appendChild(seventhsSection);
+                }
+
+                createChordElement(numeral, rootNote, chordData) {
+                    const item = document.createElement("div");
+                    item.className = "chord-item";
+                    item.dataset.root = rootNote;
+                    item.dataset.intervals = JSON.stringify(
+                        chordData.intervals
+                    );
+
+                    let chordSymbol = rootNote;
+                    if (chordData.type === "min") chordSymbol += "m";
+                    else if (chordData.type === "dim") chordSymbol += "°";
+                    else if (chordData.type === "maj7") chordSymbol += "maj7";
+                    else if (chordData.type === "min7") chordSymbol += "m7";
+                    else if (chordData.type === "dom7") chordSymbol += "7";
+                    else if (chordData.type === "half-dim7")
+                        chordSymbol += "ø7";
+
+                    item.innerHTML = `
+                    <div class="chord-numeral">${numeral}</div>
+                    <div class="chord-name">${chordSymbol}</div>
+                `;
+
+                    return item;
+                }
+
+                playChordFromElement(element) {
+                    const rootNote = element.dataset.root;
+                    const intervals = JSON.parse(element.dataset.intervals);
+                    const rootIndex = MusicTheory.notes.indexOf(rootNote);
+
+                    const frequencies = intervals.map((interval) => {
+                        const noteIndex = (rootIndex + interval) % 12;
+                        const note = MusicTheory.notes[noteIndex];
+                        return MusicTheory.baseFrequencies[note];
+                    });
+
+                    this.audio.playChord(frequencies);
+                }
+            }
+
+            // Initialize app
+            document.addEventListener("DOMContentLoaded", () => {
+                new CircularPiano();
+            });
+        </script>
+    </body>
+</html>
