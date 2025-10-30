@@ -1,18 +1,10 @@
 import { useState, useEffect } from "react";
 import { useInteraction } from "../contexts/InteractionContext";
-import type { Note, NoteWithOctave } from "../types/music";
-
-interface KeyData {
-    note: NoteWithOctave;
-    baseNote: Note;
-    displayName?: string;
-    isBlack: boolean;
-    octave: number;
-}
+import type { PianoKeyData } from "../types/music";
 
 interface LinearPianoKeyProps {
-    keyData: KeyData;
-    onPress: (keyData: KeyData) => void;
+    keyData: PianoKeyData;
+    onPress: (keyData: PianoKeyData) => void;
     isHighlighted?: boolean;
     isScaleNote?: boolean;
     position?: number;

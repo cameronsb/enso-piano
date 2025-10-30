@@ -2,18 +2,19 @@ import { useMemo, useRef, useState, useEffect } from "react";
 import type {
     Note,
     PianoKeyData,
-    NoteWithOctave,
 } from "../types/music";
 import { PianoKey } from "./PianoKey";
-import { FREQUENCIES, NOTES, getScaleNotes, getScaleDegreeNumeral, getEnharmonicSpelling } from "../utils/musicTheory";
+import { NOTES, getScaleNotes, getScaleDegreeNumeral, getEnharmonicSpelling } from "../utils/musicTheory";
 import { useMusic } from "../contexts/MusicContext";
 import { useUI } from "../contexts/UIContext";
 import { useKeyPress } from "../hooks/useKeyPress";
+import { usePiano } from "../hooks/usePiano";
 
 export function CircularPiano() {
     const { state: musicState, actions: musicActions } = useMusic();
     const { state: uiState, actions: uiActions } = useUI();
     const handleKeyPress = useKeyPress();
+    const { visibleKeys } = usePiano(); // Use dynamic key range
 
     const { selectedKey, mode, selectedChords, scaleViewEnabled } = musicState;
     const { circularPianoRotation: rotation } = uiState;
@@ -21,71 +22,50 @@ export function CircularPiano() {
     const [isDragging, setIsDragging] = useState(false);
     const [startAngle, setStartAngle] = useState(0);
     const [currentRotation, setCurrentRotation] = useState(rotation);
+
+    // Calculate positions for circular layout based on visible keys
     const pianoKeys = useMemo(() => {
-        const keys: PianoKeyData[] = [];
         const radius = 190;
-        const totalWhiteKeys = 14; // 2 octaves
+        // Count white keys to determine spacing
+        const whiteKeys = visibleKeys.filter(k => !k.isBlack);
+        const totalWhiteKeys = whiteKeys.length;
 
-        const whiteKeysPattern: Note[] = ["C", "D", "E", "F", "G", "A", "B"];
-        const blackKeysPattern: (Note | null)[] = [
-            "C#",
-            "D#",
-            null,
-            "F#",
-            "G#",
-            "A#",
-            null,
-        ];
+        return visibleKeys.map((key) => {
+            // Find the white key index for this key
+            const whiteKeyIndex = whiteKeys.findIndex(wk => wk.note === key.note);
 
-        // Create white keys for 2 octaves
-        for (let octave = 0; octave < 2; octave++) {
-            whiteKeysPattern.forEach((note, index) => {
-                const keyIndex = octave * 7 + index;
-                const angle = (keyIndex * 360) / totalWhiteKeys - 90;
-                const radian = (angle * Math.PI) / 180;
-                const x = 250 + Math.cos(radian) * radius - 25;
-                const y = 250 + Math.sin(radian) * radius - 60;
-                const octaveNum = octave + 4;
+            let angle, radian, x, y, adjustedRadius;
 
-                keys.push({
-                    note: `${note}${octaveNum}` as NoteWithOctave,
-                    baseNote: note,
-                    angle: angle + 90,
-                    x,
-                    y,
-                    isBlack: false,
-                    octave: octaveNum,
-                });
-            });
-        }
+            if (!key.isBlack) {
+                // White key positioning
+                angle = (whiteKeyIndex * 360) / totalWhiteKeys - 90;
+                radian = (angle * Math.PI) / 180;
+                adjustedRadius = radius;
+                x = 250 + Math.cos(radian) * adjustedRadius - 25;
+                y = 250 + Math.sin(radian) * adjustedRadius - 60;
+            } else {
+                // Black key positioning (between white keys)
+                // Find the previous white key
+                const prevWhiteIndex = whiteKeys.findIndex((wk, i) =>
+                    i < whiteKeys.length - 1 &&
+                    key.midiNumber > wk.midiNumber &&
+                    key.midiNumber < whiteKeys[i + 1].midiNumber
+                );
+                angle = ((prevWhiteIndex + 0.5) * 360) / totalWhiteKeys - 90;
+                radian = (angle * Math.PI) / 180;
+                adjustedRadius = radius - 25;
+                x = 250 + Math.cos(radian) * adjustedRadius - 18;
+                y = 250 + Math.sin(radian) * adjustedRadius - 45;
+            }
 
-        // Create black keys for 2 octaves
-        for (let octave = 0; octave < 2; octave++) {
-            blackKeysPattern.forEach((note, index) => {
-                if (note === null) return;
-
-                const keyIndex = octave * 7 + index;
-                const angle = ((keyIndex + 0.5) * 360) / totalWhiteKeys - 90;
-                const radian = (angle * Math.PI) / 180;
-                const blackRadius = radius - 25;
-                const x = 250 + Math.cos(radian) * blackRadius - 18;
-                const y = 250 + Math.sin(radian) * blackRadius - 45;
-                const octaveNum = octave + 4;
-
-                keys.push({
-                    note: `${note}${octaveNum}` as NoteWithOctave,
-                    baseNote: note,
-                    angle: angle + 90,
-                    x,
-                    y,
-                    isBlack: true,
-                    octave: octaveNum,
-                });
-            });
-        }
-
-        return keys;
-    }, []);
+            return {
+                ...key,
+                angle: angle + 90,
+                x,
+                y,
+            };
+        });
+    }, [visibleKeys]);
 
     // Add enharmonic display names based on current key context
     const pianoKeysWithDisplayNames = useMemo(() => {
@@ -122,10 +102,8 @@ export function CircularPiano() {
     }, [scaleViewEnabled, selectedKey, mode]);
 
     const handleKeyPressCallback = (keyData: PianoKeyData) => {
-        const frequency = FREQUENCIES[keyData.note];
-        if (frequency) {
-            handleKeyPress(keyData.baseNote, frequency);
-        }
+        // Use the frequency from PianoKeyData (already calculated)
+        handleKeyPress(keyData.baseNote, keyData.frequency);
     };
 
     const handleCenterClick = () => {

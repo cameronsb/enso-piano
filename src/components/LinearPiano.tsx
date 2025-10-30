@@ -1,65 +1,21 @@
 import { useMemo } from "react";
-import type { Note, NoteWithOctave } from "../types/music";
+import type { Note, PianoKeyData } from "../types/music";
 import { LinearPianoKey } from "./LinearPianoKey";
-import { FREQUENCIES, NOTES, getScaleNotes, getScaleDegreeNumeral, getEnharmonicSpelling } from "../utils/musicTheory";
+import { NOTES, getScaleNotes, getScaleDegreeNumeral, getEnharmonicSpelling } from "../utils/musicTheory";
 import { useMusic } from "../contexts/MusicContext";
 import { useKeyPress } from "../hooks/useKeyPress";
-
-interface KeyData {
-    note: NoteWithOctave;
-    baseNote: Note;
-    displayName?: string;
-    isBlack: boolean;
-    octave: number;
-}
+import { usePiano } from "../hooks/usePiano";
 
 export function LinearPiano() {
     const { state: musicState, actions: musicActions } = useMusic();
     const handleKeyPress = useKeyPress();
+    const { visibleKeys } = usePiano(); // Use dynamic key range
 
     const { selectedKey, mode, selectedChords, scaleViewEnabled } = musicState;
-    const pianoKeys = useMemo(() => {
-        const keys: KeyData[] = [];
-        const whiteNotes: Note[] = ["C", "D", "E", "F", "G", "A", "B"];
-        const blackNotes: (Note | null)[] = [
-            "C#",
-            "D#",
-            null,
-            "F#",
-            "G#",
-            "A#",
-            null,
-        ];
-
-        // Create 2 octaves (C4 to B5)
-        for (let octave = 4; octave <= 5; octave++) {
-            whiteNotes.forEach((note) => {
-                keys.push({
-                    note: `${note}${octave}` as NoteWithOctave,
-                    baseNote: note,
-                    isBlack: false,
-                    octave,
-                });
-            });
-
-            blackNotes.forEach((note) => {
-                if (note) {
-                    keys.push({
-                        note: `${note}${octave}` as NoteWithOctave,
-                        baseNote: note,
-                        isBlack: true,
-                        octave,
-                    });
-                }
-            });
-        }
-
-        return keys;
-    }, []);
 
     // Add enharmonic display names based on current key context
     const pianoKeysWithDisplayNames = useMemo(() => {
-        return pianoKeys.map(key => {
+        return visibleKeys.map(key => {
             const chromaticIndex = NOTES.indexOf(key.baseNote);
             const displayName = getEnharmonicSpelling(chromaticIndex, selectedKey, mode);
             return {
@@ -67,7 +23,7 @@ export function LinearPiano() {
                 displayName
             };
         });
-    }, [pianoKeys, selectedKey, mode]);
+    }, [visibleKeys, selectedKey, mode]);
 
     // Get the enharmonic spelling for the selected key
     const selectedKeyDisplayName = useMemo(() => {
@@ -97,11 +53,9 @@ export function LinearPiano() {
         return new Set(notes);
     }, [scaleViewEnabled, selectedKey, mode]);
 
-    const handleKeyPressCallback = (keyData: KeyData) => {
-        const frequency = FREQUENCIES[keyData.note];
-        if (frequency) {
-            handleKeyPress(keyData.baseNote, frequency);
-        }
+    const handleKeyPressCallback = (keyData: PianoKeyData) => {
+        // Use the frequency from the PianoKeyData (already calculated)
+        handleKeyPress(keyData.baseNote, keyData.frequency);
     };
 
     const whiteKeys = pianoKeysWithDisplayNames.filter((k) => !k.isBlack);

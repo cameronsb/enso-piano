@@ -1,4 +1,4 @@
-import type { Note, Mode, ChordData, FrequencyMap } from "../types/music";
+import type { Note, Mode, ChordData, FrequencyMap, PianoKeyData, NoteWithOctave } from "../types/music";
 
 export const NOTES: Note[] = [
     "C",
@@ -434,3 +434,139 @@ export function getScaleDegreeNumeral(
 
     return null;
 }
+
+// ============================================================================
+// 88-Key Piano Generation and Utilities
+// ============================================================================
+
+/**
+ * Calculate frequency for any MIDI note number using equal temperament
+ * Formula: f = 440 * 2^((n - 69) / 12)
+ * where n is MIDI note number and 69 is A4 (440 Hz)
+ */
+export function midiToFrequency(midiNumber: number): number {
+    return 440 * Math.pow(2, (midiNumber - 69) / 12);
+}
+
+/**
+ * Get the note name from MIDI number
+ * MIDI 21 = A0, MIDI 108 = C8
+ */
+export function midiToNoteName(midiNumber: number): NoteWithOctave {
+    const noteIndex = (midiNumber - 12) % 12; // Offset by 12 to align with NOTES array
+    const octave = Math.floor((midiNumber - 12) / 12);
+    return `${NOTES[noteIndex]}${octave}` as NoteWithOctave;
+}
+
+/**
+ * Check if a note is a black key
+ */
+export function isBlackKey(note: Note): boolean {
+    return note.includes("#");
+}
+
+/**
+ * Generate complete 88-key piano data (A0 to C8)
+ * Standard piano: MIDI numbers 21-108
+ * Returns array of PianoKeyData with MIDI numbers and frequencies
+ */
+export function generate88KeyPiano(): PianoKeyData[] {
+    const keys: PianoKeyData[] = [];
+    const FIRST_KEY = 21; // A0
+    const TOTAL_KEYS = 88;
+
+    for (let i = 0; i < TOTAL_KEYS; i++) {
+        const midiNumber = FIRST_KEY + i;
+        const noteName = midiToNoteName(midiNumber);
+
+        // Extract base note and octave
+        const baseNote = noteName.replace(/\d+$/, "") as Note;
+        const octave = parseInt(noteName.match(/\d+$/)?.[0] || "0");
+
+        // Calculate frequency
+        const frequency = midiToFrequency(midiNumber);
+
+        // Calculate position for circular view (angle)
+        const angle = (i / TOTAL_KEYS) * 360;
+
+        // Calculate position for linear view
+        // We'll use index-based positioning that can be scaled
+        const x = i;
+        const y = 0;
+
+        keys.push({
+            note: noteName,
+            baseNote,
+            octave,
+            isBlack: isBlackKey(baseNote),
+            midiNumber,
+            frequency,
+            angle,
+            x,
+            y,
+        });
+    }
+
+    return keys;
+}
+
+/**
+ * Create an efficient lookup map for piano keys by note name
+ * O(1) lookup time
+ */
+export function createPianoKeyMap(keys: PianoKeyData[]): Map<NoteWithOctave, PianoKeyData> {
+    return new Map(keys.map(key => [key.note, key]));
+}
+
+/**
+ * Create a lookup map by MIDI number
+ * O(1) lookup time
+ */
+export function createMidiKeyMap(keys: PianoKeyData[]): Map<number, PianoKeyData> {
+    return new Map(keys.map(key => [key.midiNumber, key]));
+}
+
+/**
+ * Get a subset of piano keys by MIDI range
+ * @param keys - Full piano key array
+ * @param startMidi - Starting MIDI number (inclusive)
+ * @param endMidi - Ending MIDI number (inclusive)
+ * @returns Filtered array of keys in range
+ */
+export function getKeyRange(
+    keys: PianoKeyData[],
+    startMidi: number,
+    endMidi: number
+): PianoKeyData[] {
+    return keys.filter(key =>
+        key.midiNumber >= startMidi && key.midiNumber <= endMidi
+    );
+}
+
+/**
+ * Get MIDI number for a note name
+ * Useful for range calculations
+ */
+export function noteToMidi(note: NoteWithOctave): number {
+    const match = note.match(/^([A-G]#?)(\d+)$/);
+    if (!match) return 60; // Default to C4
+
+    const [, noteName, octaveStr] = match;
+    const octave = parseInt(octaveStr);
+    const noteIndex = NOTES.indexOf(noteName as Note);
+
+    if (noteIndex === -1) return 60;
+
+    return (octave + 1) * 12 + noteIndex;
+}
+
+/**
+ * Common piano ranges as MIDI number pairs
+ */
+export const PIANO_RANGES = {
+    full88: { start: 21, end: 108, label: "Full Piano (88 keys)" },
+    twoOctaves: { start: 60, end: 83, label: "2 Octaves (C4-B5)" },
+    threeOctaves: { start: 48, end: 83, label: "3 Octaves (C3-B5)" },
+    fourOctaves: { start: 48, end: 95, label: "4 Octaves (C3-B6)" },
+    fiveOctaves: { start: 36, end: 95, label: "5 Octaves (C2-B6)" },
+} as const;

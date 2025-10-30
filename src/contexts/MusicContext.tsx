@@ -11,6 +11,10 @@ interface MusicState {
     chordDisplayMode: ChordDisplayMode;
     chordProgression: ChordInProgression[];
     scaleViewEnabled: boolean;
+    pianoRange: {
+        startMidi: number;
+        endMidi: number;
+    };
     playbackState: {
         isPlaying: boolean;
         currentBeat: number;
@@ -32,6 +36,7 @@ type MusicAction =
     | { type: "CLEAR_PROGRESSION" }
     | { type: "UPDATE_CHORD_DURATION"; payload: { id: string; duration: number } }
     | { type: "TOGGLE_SCALE_VIEW" }
+    | { type: "SET_PIANO_RANGE"; payload: { startMidi: number; endMidi: number } }
     | { type: "SET_PLAYBACK_PLAYING"; payload: boolean }
     | { type: "SET_PLAYBACK_BEAT"; payload: number }
     | { type: "SET_TEMPO"; payload: number }
@@ -46,6 +51,10 @@ const initialState: MusicState = {
     chordDisplayMode: "select",
     chordProgression: [],
     scaleViewEnabled: false,
+    pianoRange: {
+        startMidi: 60, // C4
+        endMidi: 83,   // B5 (2 octaves)
+    },
     playbackState: {
         isPlaying: false,
         currentBeat: 0,
@@ -96,6 +105,12 @@ function musicReducer(state: MusicState, action: MusicAction): MusicState {
 
         case "TOGGLE_SCALE_VIEW":
             return { ...state, scaleViewEnabled: !state.scaleViewEnabled };
+
+        case "SET_PIANO_RANGE":
+            return {
+                ...state,
+                pianoRange: action.payload,
+            };
 
         case "UPDATE_CHORD_DURATION":
             return {
@@ -155,6 +170,7 @@ interface MusicContextType {
         clearProgression: () => void;
         updateChordDuration: (id: string, duration: number) => void;
         toggleScaleView: () => void;
+        setPianoRange: (startMidi: number, endMidi: number) => void;
         setPlaybackPlaying: (playing: boolean) => void;
         setPlaybackBeat: (beat: number) => void;
         setTempo: (tempo: number) => void;
@@ -249,6 +265,10 @@ export function MusicProvider({ children }: MusicProviderProps) {
         dispatch({ type: "TOGGLE_SCALE_VIEW" });
     }, []);
 
+    const setPianoRange = useCallback((startMidi: number, endMidi: number) => {
+        dispatch({ type: "SET_PIANO_RANGE", payload: { startMidi, endMidi } });
+    }, []);
+
     const setPlaybackPlaying = useCallback((playing: boolean) => {
         dispatch({ type: "SET_PLAYBACK_PLAYING", payload: playing });
     }, []);
@@ -281,6 +301,7 @@ export function MusicProvider({ children }: MusicProviderProps) {
             clearProgression,
             updateChordDuration,
             toggleScaleView,
+            setPianoRange,
             setPlaybackPlaying,
             setPlaybackBeat,
             setTempo,

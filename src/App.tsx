@@ -5,6 +5,7 @@ import { ViewToggle } from "./components/ViewToggle";
 import { InteractionModeToggle } from "./components/InteractionModeToggle";
 import { ScaleLearningToggle } from "./components/ScaleLearningToggle";
 import { ThemeToggle } from "./components/ThemeToggle";
+import { PianoRangeControl } from "./components/PianoRangeControl";
 import { InteractionProvider } from "./contexts/InteractionContext";
 import { MusicProvider } from "./contexts/MusicContext";
 import { UIProvider, useUI } from "./contexts/UIContext";
@@ -31,6 +32,8 @@ function AppContent() {
                     <InteractionModeToggle />
                     <ScaleLearningToggle />
                 </div>
+
+                <PianoRangeControl />
 
                 {uiState.viewMode === "circular" ? (
                     <CircularPiano />

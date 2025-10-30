@@ -49,6 +49,8 @@ export interface PianoKeyData {
     y: number;
     isBlack: boolean;
     octave: number;
+    midiNumber: number; // MIDI note number (A0=21, C8=108)
+    frequency: number; // Exact frequency in Hz
 }
 
 export interface SelectedChord {
