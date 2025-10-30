@@ -18,6 +18,7 @@ export function LinearPianoKey({
     onPress,
     isHighlighted = false,
     isScaleNote = false,
+    position,
     isBlackKey = false,
     scaleNumeral = null,
     showScaleNumeral = false,
@@ -80,37 +81,43 @@ export function LinearPianoKey({
         isScaleNote && !isHighlighted ? " scale-note" : ""
     }`;
 
-    // Calculate position for black keys
-    // Black keys sit between white keys. We need to map each black note to its position
-    // relative to white keys. White keys are 60px + 2px gap = 62px each
-    const getBlackKeyPosition = (note: string): number => {
+    // Calculate position for black keys dynamically
+    // Black keys need to be positioned relative to their corresponding white key
+    const getBlackKeyPosition = (): number => {
         const whiteKeyWidth = 60;
         const gapWidth = 2;
         const keyUnit = whiteKeyWidth + gapWidth;
         const blackKeyWidth = 40;
         const offset = whiteKeyWidth - blackKeyWidth / 2;
 
-        // Map each black note to which white key it follows
-        const blackKeyMap: { [key: string]: number } = {
-            "C#4": 0, // After C4 (position 0)
-            "D#4": 1, // After D4 (position 1)
-            "F#4": 3, // After F4 (position 3)
-            "G#4": 4, // After G4 (position 4)
-            "A#4": 5, // After A4 (position 5)
-            "C#5": 7, // After C5 (position 7)
-            "D#5": 8, // After D5 (position 8)
-            "F#5": 10, // After F5 (position 10)
-            "G#5": 11, // After G5 (position 11)
-            "A#5": 12, // After A5 (position 12)
-        };
+        // Use position if available (for dynamic positioning)
+        if (position !== undefined) {
+            return position * keyUnit + offset;
+        }
 
-        const whiteKeyIndex = blackKeyMap[note];
+        // Calculate from MIDI number relative to C (MIDI 12 = C0)
+        const midiNumber = keyData.midiNumber;
+
+        // Map MIDI number to chromatic position from C
+        // C=0, C#=1, D=2, D#=3, E=4, F=5, F#=6, G=7, G#=8, A=9, A#=10, B=11
+        const chromaticPosition = (midiNumber - 12) % 12;
+
+        // Count how many white keys come before this note in the chromatic scale from C
+        // C(0) C#(0) D(1) D#(1) E(2) F(3) F#(3) G(4) G#(4) A(5) A#(5) B(6)
+        const whiteKeysBeforeInOctave = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
+
+        // Calculate which octave this is (from C0)
+        const octaveFromC0 = Math.floor((midiNumber - 12) / 12);
+
+        // Total white keys before this note
+        const whiteKeyIndex = octaveFromC0 * 7 + whiteKeysBeforeInOctave[chromaticPosition];
+
         return whiteKeyIndex * keyUnit + offset;
     };
 
     const style: React.CSSProperties = isBlackKey
         ? {
-              left: `${getBlackKeyPosition(keyData.note)}px`,
+              left: `${getBlackKeyPosition()}px`,
           }
         : {};
 

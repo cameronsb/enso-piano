@@ -1,83 +1,71 @@
 import { useMusic } from "../contexts/MusicContext";
-import { PIANO_RANGES } from "../utils/musicTheory";
+import { useUI } from "../contexts/UIContext";
 
 /**
  * Minimal, Japanese-inspired piano range selector
- * Uses a simple slider to adjust visible key range
+ * Single slider to control number of visible keys (12 to 88)
  */
 export function PianoRangeControl() {
     const { state, actions } = useMusic();
+    const { state: uiState } = useUI();
     const { pianoRange } = state;
+    const { viewMode } = uiState;
 
     // Calculate current range span
-    const currentSpan = pianoRange.endMidi - pianoRange.startMidi + 1;
+    const currentKeyCount = pianoRange.endMidi - pianoRange.startMidi + 1;
 
-    // Preset ranges for quick selection
-    const presets = [
-        { name: "2oct", ...PIANO_RANGES.twoOctaves },
-        { name: "3oct", ...PIANO_RANGES.threeOctaves },
-        { name: "4oct", ...PIANO_RANGES.fourOctaves },
-        { name: "5oct", ...PIANO_RANGES.fiveOctaves },
-        { name: "Full", ...PIANO_RANGES.full88 },
-    ];
+    // Limits
+    const MIN_KEYS = 12; // 1 octave
+    const MAX_KEYS_LINEAR = 88; // Full piano
+    const MAX_KEYS_CIRCULAR = 49; // ~4 octaves (capped for circular)
 
-    const handlePresetClick = (start: number, end: number) => {
-        actions.setPianoRange(start, end);
-    };
+    const maxKeys = viewMode === "circular" ? MAX_KEYS_CIRCULAR : MAX_KEYS_LINEAR;
 
-    // Handle slider for start position (keeping span constant)
-    const handleStartChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const newStart = parseInt(e.target.value);
-        const newEnd = newStart + currentSpan - 1;
+    // Handle slider change - adjust number of keys while keeping range centered-ish
+    const handleKeyCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const newKeyCount = parseInt(e.target.value);
 
-        // Ensure we don't exceed piano bounds
-        if (newEnd <= 108) {
-            actions.setPianoRange(newStart, newEnd);
+        // Try to keep the range centered around middle C (60) when possible
+        const centerNote = 60; // C4
+        const halfRange = Math.floor(newKeyCount / 2);
+
+        let newStart = centerNote - halfRange;
+        let newEnd = newStart + newKeyCount - 1;
+
+        // Adjust if out of bounds
+        if (newStart < 21) {
+            newStart = 21;
+            newEnd = newStart + newKeyCount - 1;
         }
+        if (newEnd > 108) {
+            newEnd = 108;
+            newStart = newEnd - newKeyCount + 1;
+        }
+
+        actions.setPianoRange(newStart, newEnd);
     };
 
     return (
-        <div style={styles.container}>
-            <div style={styles.presets}>
-                {presets.map((preset) => {
-                    const isActive =
-                        preset.start === pianoRange.startMidi &&
-                        preset.end === pianoRange.endMidi;
-
-                    return (
-                        <button
-                            key={preset.name}
-                            onClick={() => handlePresetClick(preset.start, preset.end)}
-                            style={{
-                                ...styles.presetButton,
-                                ...(isActive ? styles.activePreset : {}),
-                            }}
-                        >
-                            {preset.name}
-                        </button>
-                    );
-                })}
-            </div>
-
+        <div className="piano-range-control" style={styles.container}>
             <div style={styles.sliderContainer}>
-                <label style={styles.label}>Range Position</label>
+                <label className="range-label">Piano Range</label>
                 <input
                     type="range"
-                    min={21}
-                    max={108 - currentSpan + 1}
-                    value={pianoRange.startMidi}
-                    onChange={handleStartChange}
-                    style={styles.slider}
+                    min={MIN_KEYS}
+                    max={maxKeys}
+                    value={currentKeyCount}
+                    onChange={handleKeyCountChange}
+                    className="range-slider"
                 />
-                <div style={styles.rangeInfo}>
-                    {currentSpan} keys
+                <div className="range-info" style={styles.rangeInfo}>
+                    {currentKeyCount} keys
                 </div>
             </div>
         </div>
     );
 }
 
-// Minimal Japanese-inspired styles
+// Minimal Japanese-inspired styles with dark mode support
 const styles: Record<string, React.CSSProperties> = {
     container: {
         display: "flex",
@@ -85,7 +73,6 @@ const styles: Record<string, React.CSSProperties> = {
         gap: "16px",
         padding: "16px",
         borderRadius: "4px",
-        background: "rgba(0, 0, 0, 0.02)",
         maxWidth: "400px",
     },
     presets: {
@@ -93,45 +80,13 @@ const styles: Record<string, React.CSSProperties> = {
         gap: "8px",
         justifyContent: "center",
     },
-    presetButton: {
-        padding: "6px 12px",
-        border: "1px solid rgba(0, 0, 0, 0.1)",
-        borderRadius: "2px",
-        background: "white",
-        cursor: "pointer",
-        fontSize: "12px",
-        fontWeight: 500,
-        color: "rgba(0, 0, 0, 0.6)",
-        transition: "all 0.15s ease",
-    },
-    activePreset: {
-        background: "rgba(0, 0, 0, 0.9)",
-        color: "white",
-        borderColor: "rgba(0, 0, 0, 0.9)",
-    },
     sliderContainer: {
         display: "flex",
         flexDirection: "column",
         gap: "8px",
     },
-    label: {
-        fontSize: "11px",
-        fontWeight: 500,
-        textTransform: "uppercase",
-        letterSpacing: "0.5px",
-        color: "rgba(0, 0, 0, 0.5)",
-    },
-    slider: {
-        width: "100%",
-        height: "2px",
-        appearance: "none",
-        background: "rgba(0, 0, 0, 0.1)",
-        outline: "none",
-        borderRadius: "1px",
-    },
     rangeInfo: {
         fontSize: "12px",
-        color: "rgba(0, 0, 0, 0.6)",
         textAlign: "center",
     },
 };

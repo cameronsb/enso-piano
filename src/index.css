@@ -1257,3 +1257,64 @@ body {
         display: none;
     }
 }
+
+/* Piano Range Control */
+.piano-range-control {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+}
+
+.range-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-secondary);
+}
+
+.range-info {
+    color: var(--text-secondary);
+}
+
+/* Range slider custom styling */
+.range-slider {
+    width: 100%;
+    height: 2px;
+    appearance: none;
+    background: var(--border-light);
+    outline: none;
+    border-radius: 1px;
+    cursor: pointer;
+}
+
+.range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--black-key);
+    cursor: pointer;
+    border: 2px solid var(--accent);
+    transition: all 0.15s ease;
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+    background: var(--accent);
+    transform: scale(1.1);
+}
+
+.range-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--black-key);
+    cursor: pointer;
+    border: 2px solid var(--accent);
+    transition: all 0.15s ease;
+}
+
+.range-slider::-moz-range-thumb:hover {
+    background: var(--accent);
+    transform: scale(1.1);
+}
