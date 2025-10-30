@@ -115,10 +115,10 @@ export function LinearPiano() {
                         );
 
                         // Calculate which white key this black key comes after
-                        // Count white keys in visible range that have MIDI number less than this black key
-                        const whiteKeysBeforeThisBlack = whiteKeys.filter(
-                            wk => wk.midiNumber < keyData.midiNumber
-                        ).length;
+                        // Find the last white key before this black key
+                        const whiteKeyIndex = whiteKeys.reduce((lastIndex, wk, index) => {
+                            return wk.midiNumber < keyData.midiNumber ? index : lastIndex;
+                        }, -1);
 
                         return (
                             <LinearPianoKey
@@ -129,7 +129,7 @@ export function LinearPiano() {
                                     keyData.baseNote
                                 )}
                                 isScaleNote={scaleNotes.has(keyData.baseNote)}
-                                position={whiteKeysBeforeThisBlack}
+                                position={whiteKeyIndex}
                                 isBlackKey={true}
                                 scaleNumeral={scaleNumeral}
                                 showScaleNumeral={scaleViewEnabled}
