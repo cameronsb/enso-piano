@@ -1,4 +1,3 @@
-import { useState } from "react";
 import type { ChordInProgression, Note, Mode } from "../types/music";
 import type { NoteSubdivision } from "../contexts/MusicContext";
 import { getFullChordName, getRomanNumeralForChord } from "../utils/musicTheory";
@@ -32,8 +31,6 @@ export function ChordProgressionTrack({
     tempo = 120,
     subdivision = "quarter",
 }: ChordProgressionTrackProps) {
-    const [editingId, setEditingId] = useState<string | null>(null);
-
     if (chords.length === 0) {
         return (
             <div className="chord-track-empty">
@@ -67,7 +64,6 @@ export function ChordProgressionTrack({
             <div className="chord-track">
                 {chords.map((chord) => {
                     const isActive = chord.id === activeChordId;
-                    const isEditing = chord.id === editingId;
 
                     // Calculate pulse duration based on subdivision
                     const subdivisionBeats = subdivision === "whole" ? 4 : subdivision === "quarter" ? 1 : 0.5;
@@ -110,13 +106,10 @@ export function ChordProgressionTrack({
                                     value={chord.duration}
                                     onChange={(e) => {
                                         onUpdateDuration(chord.id, Number(e.target.value));
-                                        setEditingId(null);
                                     }}
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        setEditingId(chord.id);
                                     }}
-                                    onBlur={() => setEditingId(null)}
                                     className="duration-picker"
                                 >
                                     {DURATION_OPTIONS.map((duration) => (

@@ -43,6 +43,7 @@ export interface FrequencyMap {
 export interface PianoKeyData {
     note: NoteWithOctave;
     baseNote: Note;
+    displayName?: string; // Enharmonic spelling based on current key context
     angle: number;
     x: number;
     y: number;

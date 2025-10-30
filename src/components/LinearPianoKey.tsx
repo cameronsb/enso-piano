@@ -5,6 +5,7 @@ import type { Note, NoteWithOctave } from "../types/music";
 interface KeyData {
     note: NoteWithOctave;
     baseNote: Note;
+    displayName?: string;
     isBlack: boolean;
     octave: number;
 }
@@ -130,7 +131,7 @@ export function LinearPianoKey({
             onMouseEnter={handleMouseEnter}
             onTouchStart={handleTouchStart}
         >
-            <span className="linear-key-label">{keyData.baseNote}</span>
+            <span className="linear-key-label">{keyData.displayName || keyData.baseNote}</span>
             {showScaleNumeral && scaleNumeral && (
                 <span className="linear-scale-numeral">
                     {scaleNumeral}

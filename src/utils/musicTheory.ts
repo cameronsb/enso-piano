@@ -74,6 +74,113 @@ export const SCALES = {
     minor: [0, 2, 3, 5, 7, 8, 10],
 };
 
+// Standard major scale spellings for all 12 tonics
+// Using circle of fifths conventions: sharp keys use sharps, flat keys use flats
+// Each scale must use each letter name exactly once (C-D-E-F-G-A-B)
+export const MAJOR_SCALE_SPELLINGS: Record<Note, string[]> = {
+    "C": ["C", "D", "E", "F", "G", "A", "B"],
+    "C#": ["Db", "Eb", "F", "Gb", "Ab", "Bb", "C"], // Db major (5 flats)
+    "D": ["D", "E", "F#", "G", "A", "B", "C#"],
+    "D#": ["Eb", "F", "G", "Ab", "Bb", "C", "D"], // Eb major (3 flats)
+    "E": ["E", "F#", "G#", "A", "B", "C#", "D#"],
+    "F": ["F", "G", "A", "Bb", "C", "D", "E"],
+    "F#": ["F#", "G#", "A#", "B", "C#", "D#", "E#"], // F# major (6 sharps)
+    "G": ["G", "A", "B", "C", "D", "E", "F#"],
+    "G#": ["Ab", "Bb", "C", "Db", "Eb", "F", "G"], // Ab major (4 flats)
+    "A": ["A", "B", "C#", "D", "E", "F#", "G#"],
+    "A#": ["Bb", "C", "D", "Eb", "F", "G", "A"], // Bb major (2 flats)
+    "B": ["B", "C#", "D#", "E", "F#", "G#", "A#"],
+};
+
+// Standard natural minor scale spellings for all 12 tonics
+// Minor keys use the same key signature as their relative major
+export const MINOR_SCALE_SPELLINGS: Record<Note, string[]> = {
+    "C": ["C", "D", "Eb", "F", "G", "Ab", "Bb"], // C minor (3 flats, relative to Eb major)
+    "C#": ["C#", "D#", "E", "F#", "G#", "A", "B"], // C# minor (4 sharps, relative to E major)
+    "D": ["D", "E", "F", "G", "A", "Bb", "C"], // D minor (1 flat, relative to F major)
+    "D#": ["Eb", "F", "Gb", "Ab", "Bb", "Cb", "Db"], // Eb minor (6 flats, relative to Gb major)
+    "E": ["E", "F#", "G", "A", "B", "C", "D"], // E minor (1 sharp, relative to G major)
+    "F": ["F", "G", "Ab", "Bb", "C", "Db", "Eb"], // F minor (4 flats, relative to Ab major)
+    "F#": ["F#", "G#", "A", "B", "C#", "D", "E"], // F# minor (3 sharps, relative to A major)
+    "G": ["G", "A", "Bb", "C", "D", "Eb", "F"], // G minor (2 flats, relative to Bb major)
+    "G#": ["G#", "A#", "B", "C#", "D#", "E", "F#"], // G# minor (5 sharps, relative to B major)
+    "A": ["A", "B", "C", "D", "E", "F", "G"], // A minor (0 sharps/flats, relative to C major)
+    "A#": ["Bb", "C", "Db", "Eb", "F", "Gb", "Ab"], // Bb minor (5 flats, relative to Db major)
+    "B": ["B", "C#", "D", "E", "F#", "G", "A"], // B minor (2 sharps, relative to D major)
+};
+
+// Map chromatic indices to their enharmonic equivalents
+// Index 0 = C, 1 = C#/Db, 2 = D, etc.
+const ENHARMONIC_PAIRS: Record<number, { sharp: string; flat: string }> = {
+    0: { sharp: "C", flat: "C" },
+    1: { sharp: "C#", flat: "Db" },
+    2: { sharp: "D", flat: "D" },
+    3: { sharp: "D#", flat: "Eb" },
+    4: { sharp: "E", flat: "E" },
+    5: { sharp: "F", flat: "F" },
+    6: { sharp: "F#", flat: "Gb" },
+    7: { sharp: "G", flat: "G" },
+    8: { sharp: "G#", flat: "Ab" },
+    9: { sharp: "A", flat: "A" },
+    10: { sharp: "A#", flat: "Bb" },
+    11: { sharp: "B", flat: "B" },
+};
+
+// Determine if a key is a "sharp key" or "flat key" based on circle of fifths
+// Sharp keys: C, G, D, A, E, B, F#
+// Flat keys: F, Bb, Eb, Ab, Db, Gb
+const SHARP_KEYS: Set<Note> = new Set(["C", "G", "D", "A", "E", "B", "F#"]);
+const FLAT_KEYS: Set<Note> = new Set(["F", "A#", "D#", "G#", "C#"]); // A# = Bb, D# = Eb, G# = Ab, C# = Db
+
+/**
+ * Get the enharmonic spelling for a chromatic note based on musical context
+ * @param chromaticIndex - The chromatic index (0-11) where 0=C, 1=C#/Db, etc.
+ * @param keyRoot - The root note of the current key
+ * @param mode - major or minor
+ * @returns The correct enharmonic spelling (e.g., "Db" instead of "C#" in Db major)
+ */
+export function getEnharmonicSpelling(
+    chromaticIndex: number,
+    keyRoot: Note,
+    mode: Mode
+): string {
+    // Normalize the chromatic index to 0-11
+    const normalizedIndex = ((chromaticIndex % 12) + 12) % 12;
+
+    // Get the scale spellings for the current key and mode
+    const scaleSpellings = mode === "major"
+        ? MAJOR_SCALE_SPELLINGS[keyRoot]
+        : MINOR_SCALE_SPELLINGS[keyRoot];
+
+    // Get the scale intervals for the mode
+    const scaleIntervals = SCALES[mode];
+
+    // Get the root note index
+    const rootIndex = NOTES.indexOf(keyRoot);
+
+    // Check if this chromatic index is in the scale
+    for (let i = 0; i < scaleIntervals.length; i++) {
+        const scaleNoteIndex = (rootIndex + scaleIntervals[i]) % 12;
+        if (scaleNoteIndex === normalizedIndex) {
+            // This note is in the scale, use the scale spelling
+            return scaleSpellings[i];
+        }
+    }
+
+    // This note is not in the scale (chromatic passing tone)
+    // Use sharps for sharp keys, flats for flat keys
+    const pair = ENHARMONIC_PAIRS[normalizedIndex];
+
+    if (SHARP_KEYS.has(keyRoot)) {
+        return pair.sharp;
+    } else if (FLAT_KEYS.has(keyRoot)) {
+        return pair.flat;
+    }
+
+    // Default to sharp for C (which can go either way)
+    return pair.sharp;
+}
+
 export const CHORD_TYPES: Record<Mode, ChordData> = {
     major: {
         triads: [

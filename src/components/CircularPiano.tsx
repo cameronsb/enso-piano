@@ -5,7 +5,7 @@ import type {
     NoteWithOctave,
 } from "../types/music";
 import { PianoKey } from "./PianoKey";
-import { FREQUENCIES, NOTES, getScaleNotes, getScaleDegreeNumeral } from "../utils/musicTheory";
+import { FREQUENCIES, NOTES, getScaleNotes, getScaleDegreeNumeral, getEnharmonicSpelling } from "../utils/musicTheory";
 import { useMusic } from "../contexts/MusicContext";
 import { useUI } from "../contexts/UIContext";
 import { useKeyPress } from "../hooks/useKeyPress";
@@ -87,6 +87,18 @@ export function CircularPiano() {
         return keys;
     }, []);
 
+    // Add enharmonic display names based on current key context
+    const pianoKeysWithDisplayNames = useMemo(() => {
+        return pianoKeys.map(key => {
+            const chromaticIndex = NOTES.indexOf(key.baseNote);
+            const displayName = getEnharmonicSpelling(chromaticIndex, selectedKey, mode);
+            return {
+                ...key,
+                displayName
+            };
+        });
+    }, [pianoKeys, selectedKey, mode]);
+
     // Calculate which notes are highlighted by selected chords
     const highlightedNotes = useMemo(() => {
         const notes = new Set<Note>();
@@ -121,6 +133,12 @@ export function CircularPiano() {
             musicActions.deselectChords();
         }
     };
+
+    // Get the enharmonic spelling for the selected key
+    const selectedKeyDisplayName = useMemo(() => {
+        const chromaticIndex = NOTES.indexOf(selectedKey);
+        return getEnharmonicSpelling(chromaticIndex, selectedKey, mode);
+    }, [selectedKey, mode]);
 
     // Calculate angle from center to mouse position
     const getAngleFromCenter = (clientX: number, clientY: number): number => {
@@ -183,7 +201,7 @@ export function CircularPiano() {
                 }`}
                 onClick={handleCenterClick}
             >
-                <div className="selected-key">{selectedKey}</div>
+                <div className="selected-key">{selectedKeyDisplayName}</div>
                 <div className="key-mode">
                     {mode.charAt(0).toUpperCase() + mode.slice(1)}
                 </div>
@@ -200,7 +218,7 @@ export function CircularPiano() {
                     transition: isDragging ? "none" : "transform 0.3s ease"
                 }}
             >
-                {pianoKeys.map((keyData) => {
+                {pianoKeysWithDisplayNames.map((keyData) => {
                     const scaleNumeral = getScaleDegreeNumeral(
                         keyData.baseNote,
                         selectedKey,

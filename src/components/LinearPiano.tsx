@@ -1,13 +1,14 @@
 import { useMemo } from "react";
 import type { Note, NoteWithOctave } from "../types/music";
 import { LinearPianoKey } from "./LinearPianoKey";
-import { FREQUENCIES, NOTES, getScaleNotes, getScaleDegreeNumeral } from "../utils/musicTheory";
+import { FREQUENCIES, NOTES, getScaleNotes, getScaleDegreeNumeral, getEnharmonicSpelling } from "../utils/musicTheory";
 import { useMusic } from "../contexts/MusicContext";
 import { useKeyPress } from "../hooks/useKeyPress";
 
 interface KeyData {
     note: NoteWithOctave;
     baseNote: Note;
+    displayName?: string;
     isBlack: boolean;
     octave: number;
 }
@@ -56,6 +57,24 @@ export function LinearPiano() {
         return keys;
     }, []);
 
+    // Add enharmonic display names based on current key context
+    const pianoKeysWithDisplayNames = useMemo(() => {
+        return pianoKeys.map(key => {
+            const chromaticIndex = NOTES.indexOf(key.baseNote);
+            const displayName = getEnharmonicSpelling(chromaticIndex, selectedKey, mode);
+            return {
+                ...key,
+                displayName
+            };
+        });
+    }, [pianoKeys, selectedKey, mode]);
+
+    // Get the enharmonic spelling for the selected key
+    const selectedKeyDisplayName = useMemo(() => {
+        const chromaticIndex = NOTES.indexOf(selectedKey);
+        return getEnharmonicSpelling(chromaticIndex, selectedKey, mode);
+    }, [selectedKey, mode]);
+
     // Calculate which notes are highlighted by selected chords
     const highlightedNotes = useMemo(() => {
         const notes = new Set<Note>();
@@ -85,8 +104,8 @@ export function LinearPiano() {
         }
     };
 
-    const whiteKeys = pianoKeys.filter((k) => !k.isBlack);
-    const blackKeys = pianoKeys.filter((k) => k.isBlack);
+    const whiteKeys = pianoKeysWithDisplayNames.filter((k) => !k.isBlack);
+    const blackKeys = pianoKeysWithDisplayNames.filter((k) => k.isBlack);
 
     return (
         <div className="linear-piano-container">
@@ -98,7 +117,7 @@ export function LinearPiano() {
                     selectedChords.length > 0 && musicActions.deselectChords()
                 }
             >
-                <div className="selected-key-linear">{selectedKey}</div>
+                <div className="selected-key-linear">{selectedKeyDisplayName}</div>
                 <div className="key-mode-linear">
                     {mode.charAt(0).toUpperCase() + mode.slice(1)}
                 </div>

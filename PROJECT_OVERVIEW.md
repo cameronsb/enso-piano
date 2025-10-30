@@ -224,6 +224,7 @@ npm run preview      # Preview production build
 ### With the New Clean Architecture
 
 #### Adding a New State Feature
+
 ```typescript
 // 1. Add to MusicContext state
 interface MusicState {
@@ -245,12 +246,14 @@ const { state, actions } = useMusic();
 ```
 
 #### Adding a New Instrument
+
 ```typescript
 // Simply extend contexts, no prop drilling needed!
 // Components automatically get access via hooks
 ```
 
 #### Adding Recording Feature
+
 ```typescript
 // Create new context
 export const RecordingContext = createContext();
@@ -262,7 +265,7 @@ export const RecordingContext = createContext();
             <App />
         </MusicProvider>
     </UIProvider>
-</RecordingProvider>
+</RecordingProvider>;
 ```
 
 ## 📦 Dependencies

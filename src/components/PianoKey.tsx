@@ -106,13 +106,13 @@ export function PianoKey({
                 className="key-label key-label-top"
                 style={labelFontSize ? { fontSize: labelFontSize } : undefined}
             >
-                {keyData.baseNote}
+                {keyData.displayName || keyData.baseNote}
             </span>
             <span
                 className="key-label key-label-bottom"
                 style={labelFontSize ? { fontSize: labelFontSize } : undefined}
             >
-                {keyData.baseNote}
+                {keyData.displayName || keyData.baseNote}
             </span>
             {showScaleNumeral && scaleNumeral && (
                 <span className="scale-numeral">
